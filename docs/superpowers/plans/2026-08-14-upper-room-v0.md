@@ -4,136 +4,69 @@
 
 **Goal:** Build a phone-first private shared Scripture room where three people can read independently, inspect one another's live reading windows, select text, invoke evidence-bounded AIHYPER proposals, create durable human/AI witness events, branch, leave, and return without losing room history.
 
-**Architecture:** A Vite React TypeScript PWA owns the Scripture-first phone surface. Supabase Auth/Postgres hold private durable room membership and append-only events; Supabase Realtime Presence holds slow-changing participant state while Broadcast carries throttled live viewport movement. AIHYPER runs in a Supabase Edge Function, validates structured Gemini output, verifies Scripture references against the local WEB corpus, and refuses unsupported claims instead of silently inventing evidence.
+**Architecture:** A Vite React TypeScript PWA owns the Scripture-first phone surface. Supabase Auth/Postgres hold private durable room membership and append-only events. Supabase Realtime Presence holds slow-changing participant identity/location state while Broadcast carries throttled live viewport movement. AIHYPER runs in a Supabase Edge Function behind a provider adapter, validates structured Gemini output, verifies Scripture references against the local WEB corpus, and refuses unsupported claims instead of inventing evidence.
 
-**Tech Stack:** Node.js 20.19+; Vite; React; TypeScript; Vitest; Testing Library; Playwright; `@supabase/supabase-js`; Supabase Postgres/Auth/Realtime/Edge Functions; Zod; `vite-plugin-pwa`; Gemini REST API behind a provider adapter.
+**Tech Stack:** Node.js 20.19+; Vite; React; TypeScript; Vitest; Testing Library; Playwright; `@supabase/supabase-js`; Supabase Postgres/Auth/Realtime/Edge Functions; Zod; `vite-plugin-pwa`; Gemini REST API.
 
 ## Global Constraints
 
-- Phone-first responsive PWA; Scripture remains the dominant visual surface.
-- Default Scripture source is the 66-book World English Bible Protestant edition (`engwebp`), preserved verbatim and labeled as WEB.
-- Translation access lives behind a `ScriptureAdapter`; event semantics never depend on WEB-specific layout.
+- Scripture remains the dominant visual surface.
+- Default Scripture source is the 66-book World English Bible Protestant edition (`engwebp`), stored verbatim and labeled WEB.
+- Translation access lives behind `ScriptureAdapter`; event semantics never depend on rendered layout.
 - All room content is private-to-room by default; v0 has no public publishing workflow.
-- AIHYPER never initiates speech. It runs only from an explicit Scripture selection plus an explicit menu action.
-- AIHYPER output is a proposal, never canonical Scripture and never an authoritative interpretation.
-- Unsupported lexical/historical claims return an explicit unsupported result rather than fabricated evidence.
+- AIHYPER runs only from an explicit Scripture selection plus an explicit human menu action.
+- AIHYPER output is a proposal, never canonical Scripture or authoritative interpretation.
+- Unsupported lexical/historical claims return an explicit unsupported state.
 - Presence is a viewport, not control: observing another participant never mutates that participant or the observer's saved viewport.
-- Supabase Presence is limited to slow-changing state; throttled viewport motion uses Realtime Broadcast, not repeated `track()` calls.
-- Scroll/viewport movement is ephemeral and must never create append-only room events.
-- Notes, questions, recognitions, objections, branch creation, AIHYPER proposal/admission/refusal, and returns are durable append-only events.
+- Use Supabase Presence for slow-changing state; use throttled Broadcast for live viewport movement.
+- Viewport/scroll movement is ephemeral and never becomes a durable room event.
+- Notes, questions, recognitions, objections, branch creation, AIHYPER proposal/admission/refusal, and returns are append-only durable events.
 - Refusal remains visible residue but has no admitted semantic effect.
 - No forced synchronized scrolling, sermon generation, devotional feed, doctrinal scoring, gamification, or permanent reading telemetry.
 
 ---
 
-## File Structure
+## File Map
 
 ```text
-Upper-room/
-├── .env.example
-├── .github/
-│   └── workflows/ci.yml
-├── index.html
-├── package.json
-├── playwright.config.ts
-├── tsconfig.json
-├── vite.config.ts
-├── public/
-│   ├── icons/
-│   └── scripture/
-│       └── webp/
-│           ├── manifest.json
-│           └── chapters/*.json
-├── scripts/
-│   └── import-webp.mjs
-├── src/
-│   ├── app/
-│   │   ├── App.tsx
-│   │   └── App.test.tsx
-│   ├── lib/
-│   │   ├── supabase/client.ts
-│   │   └── supabase/env.ts
-│   ├── features/
-│   │   ├── scripture/
-│   │   │   ├── types.ts
-│   │   │   ├── adapter.ts
-│   │   │   ├── webpAdapter.ts
-│   │   │   ├── webpAdapter.test.ts
-│   │   │   ├── Reader.tsx
-│   │   │   └── Reader.test.tsx
-│   │   ├── selection/
-│   │   │   ├── selection.ts
-│   │   │   ├── selection.test.ts
-│   │   │   ├── SelectionLayer.tsx
-│   │   │   └── SelectionLayer.test.tsx
-│   │   ├── presence/
-│   │   │   ├── types.ts
-│   │   │   ├── reducer.ts
-│   │   │   ├── reducer.test.ts
-│   │   │   ├── roomChannel.ts
-│   │   │   ├── PresenceTabs.tsx
-│   │   │   └── PresenceTabs.test.tsx
-│   │   ├── room/
-│   │   │   ├── types.ts
-│   │   │   ├── api.ts
-│   │   │   ├── api.test.ts
-│   │   │   ├── RoomScreen.tsx
-│   │   │   └── RoomScreen.test.tsx
-│   │   ├── events/
-│   │   │   ├── types.ts
-│   │   │   ├── projection.ts
-│   │   │   ├── projection.test.ts
-│   │   │   ├── MemorySheet.tsx
-│   │   │   └── MemorySheet.test.tsx
-│   │   └── aihyper/
-│   │       ├── types.ts
-│   │       ├── schema.ts
-│   │       ├── schema.test.ts
-│   │       ├── api.ts
-│   │       ├── AIHyperSheet.tsx
-│   │       └── AIHyperSheet.test.tsx
-│   ├── main.tsx
-│   └── styles.css
-├── supabase/
-│   ├── config.toml
-│   ├── migrations/
-│   │   └── 20260814190000_upper_room_v0.sql
-│   └── functions/
-│       └── aihyper/
-│           ├── index.ts
-│           ├── provider.ts
-│           ├── provider.test.ts
-│           └── prompt.ts
-└── tests/
-    └── upper-room.spec.ts
+.env.example
+.github/workflows/ci.yml
+index.html
+package.json
+playwright.config.ts
+vite.config.ts
+src/
+  main.tsx
+  styles.css
+  test/setup.ts
+  app/App.tsx
+  app/App.test.tsx
+  lib/supabase/{env.ts,client.ts}
+  features/scripture/{types.ts,adapter.ts,webpAdapter.ts,webpAdapter.test.ts,Reader.tsx,Reader.test.tsx}
+  features/selection/{selection.ts,selection.test.ts,SelectionLayer.tsx,SelectionLayer.test.tsx}
+  features/presence/{types.ts,reducer.ts,reducer.test.ts,roomChannel.ts,PresenceTabs.tsx,PresenceTabs.test.tsx}
+  features/room/{types.ts,api.ts,api.test.ts,RoomScreen.tsx,RoomScreen.test.tsx}
+  features/events/{types.ts,projection.ts,projection.test.ts,MemorySheet.tsx,MemorySheet.test.tsx}
+  features/aihyper/{types.ts,schema.ts,schema.test.ts,api.ts,AIHyperSheet.tsx,AIHyperSheet.test.tsx}
+public/scripture/webp/{manifest.json,chapters/*.json}
+scripts/import-webp.mjs
+supabase/config.toml
+supabase/migrations/20260814190000_upper_room_v0.sql
+supabase/functions/aihyper/{index.ts,provider.ts,provider.test.ts,prompt.ts}
+tests/upper-room.spec.ts
+README.md
+docs/field-test-v0.md
 ```
-
-The field-test corpus can begin with John 1 while the importer is being proved, but Task 2 is not complete until the generated manifest covers all 66 `engwebp` books.
 
 ---
 
-### Task 1: Scaffold the phone-first PWA and test floor
+### Task 1: Establish the PWA and test floor
 
-**Files:**
-- Create: `package.json`
-- Create: `vite.config.ts`
-- Create: `tsconfig.json`
-- Create: `index.html`
-- Create: `src/main.tsx`
-- Create: `src/app/App.tsx`
-- Create: `src/app/App.test.tsx`
-- Create: `src/styles.css`
-- Create: `.env.example`
-- Create: `.github/workflows/ci.yml`
-- Create: `playwright.config.ts`
+**Files:** create `package.json`, `vite.config.ts`, `playwright.config.ts`, `src/test/setup.ts`, `src/app/App.tsx`, `src/app/App.test.tsx`, `src/styles.css`, `.env.example`, `.github/workflows/ci.yml`.
 
-**Interfaces:**
-- Produces: a React application mounted at `#root`; `npm test`, `npm run build`, `npm run lint`, and `npm run test:e2e` scripts; PWA manifest/service-worker registration; validated client environment access.
-- Consumes: none.
+**Interfaces:** produces runnable React app plus `npm test`, `npm run build`, `npm run lint`, `npm run test:e2e`.
 
-- [ ] **Step 1: Scaffold Vite React TypeScript into the existing repository without deleting docs**
-
-Run from a temporary directory, then copy only scaffold files into `Upper-room` so `docs/` survives:
+- [ ] **Step 1: Scaffold Vite React TypeScript without deleting `docs/`**
 
 ```bash
 npm create vite@latest upper-room-scaffold -- --template react-ts
@@ -144,9 +77,7 @@ npm install @supabase/supabase-js zod vite-plugin-pwa
 npm install -D vitest jsdom @testing-library/react @testing-library/jest-dom @testing-library/user-event @playwright/test eslint
 ```
 
-- [ ] **Step 2: Add scripts and the test environment**
-
-Set the relevant `package.json` scripts to:
+- [ ] **Step 2: Set scripts**
 
 ```json
 {
@@ -161,10 +92,10 @@ Set the relevant `package.json` scripts to:
 }
 ```
 
-Configure `vite.config.ts`:
+- [ ] **Step 3: Configure Vite/Vitest/PWA**
 
 ```ts
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -179,24 +110,44 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/',
         theme_color: '#111111',
-        background_color: '#111111',
-      },
-    }),
+        background_color: '#111111'
+      }
+    })
   ],
   test: {
     environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
-  },
+    setupFiles: './src/test/setup.ts'
+  }
 });
 ```
 
-Create `src/test/setup.ts`:
+`src/test/setup.ts`:
 
 ```ts
 import '@testing-library/jest-dom/vitest';
 ```
 
-- [ ] **Step 3: Write the failing shell test**
+- [ ] **Step 4: Configure Playwright**
+
+```ts
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+  use: {
+    baseURL: 'http://127.0.0.1:4173',
+    trace: 'retain-on-failure'
+  },
+  projects: [{ name: 'mobile-chrome', use: { ...devices['Pixel 7'] } }],
+  webServer: {
+    command: 'npm run build && npm run preview -- --host 127.0.0.1',
+    port: 4173,
+    reuseExistingServer: !process.env.CI
+  }
+});
+```
+
+- [ ] **Step 5: Write the failing shell test**
 
 ```tsx
 import { render, screen } from '@testing-library/react';
@@ -209,17 +160,15 @@ it('keeps Scripture as the primary promised surface', () => {
 });
 ```
 
-- [ ] **Step 4: Run the shell test and verify failure**
-
-Run:
+- [ ] **Step 6: Run it and verify failure**
 
 ```bash
 npm test -- src/app/App.test.tsx
 ```
 
-Expected: FAIL because the final app shell is not implemented.
+Expected: FAIL before the shell is implemented.
 
-- [ ] **Step 5: Implement the minimal shell**
+- [ ] **Step 7: Implement the minimal shell**
 
 ```tsx
 export default function App() {
@@ -234,11 +183,9 @@ export default function App() {
 }
 ```
 
-Keep CSS intentionally spare: full viewport, readable line length, touch targets at least 44px, no permanent side rails.
+CSS requirements: full-height viewport, readable line length, minimum 44px interactive targets, no permanent sidebars or bottom navigation.
 
-- [ ] **Step 6: Add CI**
-
-Create `.github/workflows/ci.yml`:
+- [ ] **Step 8: Add CI**
 
 ```yaml
 name: CI
@@ -260,40 +207,24 @@ jobs:
       - run: npm run build
 ```
 
-- [ ] **Step 7: Run foundation verification**
+- [ ] **Step 9: Verify and commit**
 
 ```bash
 npm test
 npm run build
-```
-
-Expected: both exit 0.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add package.json package-lock.json vite.config.ts tsconfig*.json index.html src public .env.example .github playwright.config.ts
+git add .
 git commit -m "feat: establish Upper Room phone-first app shell"
 ```
 
 ---
 
-### Task 2: Create the Scripture domain and import WEBP without layout coupling
+### Task 2: Import WEBP and expose canonical Scripture coordinates
 
-**Files:**
-- Create: `src/features/scripture/types.ts`
-- Create: `src/features/scripture/adapter.ts`
-- Create: `src/features/scripture/webpAdapter.ts`
-- Create: `src/features/scripture/webpAdapter.test.ts`
-- Create: `scripts/import-webp.mjs`
-- Create/generated: `public/scripture/webp/manifest.json`
-- Create/generated: `public/scripture/webp/chapters/*.json`
+**Files:** create `src/features/scripture/types.ts`, `adapter.ts`, `webpAdapter.ts`, `webpAdapter.test.ts`, `scripts/import-webp.mjs`, generated `public/scripture/webp/*`.
 
-**Interfaces:**
-- Produces: `ScriptureAdapter`, `ScriptureRef`, `ScriptureVerse`, `ScriptureChapter`; `webpAdapter.getChapter(ref)`; generated immutable WEBP chapter JSON.
-- Consumes: browser `fetch` only.
+**Interfaces:** produces `ScriptureRef`, `ScriptureChapter`, `ScriptureAdapter`, and `webpAdapter.getChapter()`.
 
-- [ ] **Step 1: Define canonical Scripture types**
+- [ ] **Step 1: Define Scripture types**
 
 ```ts
 export type ScriptureRef = {
@@ -303,10 +234,7 @@ export type ScriptureRef = {
   verse?: number;
 };
 
-export type ScriptureVerse = {
-  verse: number;
-  text: string;
-};
+export type ScriptureVerse = { verse: number; text: string };
 
 export type ScriptureChapter = {
   translationId: string;
@@ -322,136 +250,117 @@ export interface ScriptureAdapter {
 }
 ```
 
-- [ ] **Step 2: Write adapter tests before implementation**
-
-Tests must prove:
+- [ ] **Step 2: Write failing adapter tests**
 
 ```ts
 it('loads John 1 by canonical coordinates', async () => {
   const chapter = await webpAdapter.getChapter({ translationId: 'webp', book: 'JHN', chapter: 1 });
-  expect(chapter.translationId).toBe('webp');
   expect(chapter.book).toBe('JHN');
   expect(chapter.chapter).toBe(1);
   expect(chapter.verses[0]?.verse).toBe(1);
   expect(chapter.verses[0]?.text.length).toBeGreaterThan(0);
 });
 
-it('rejects translation substitution', async () => {
+it('never substitutes another translation', async () => {
   await expect(webpAdapter.getChapter({ translationId: 'other', book: 'JHN', chapter: 1 }))
     .rejects.toThrow('Unsupported translation: other');
 });
 ```
 
-Mock `fetch` against a deterministic fixture in the test.
-
-- [ ] **Step 3: Run tests and verify failure**
+Run:
 
 ```bash
 npm test -- src/features/scripture/webpAdapter.test.ts
 ```
 
-Expected: FAIL because `webpAdapter` does not exist.
+Expected: FAIL.
 
-- [ ] **Step 4: Implement the browser adapter**
+- [ ] **Step 3: Implement adapter**
 
 ```ts
-import type { ScriptureAdapter, ScriptureChapter, ScriptureRef } from './types';
-
 export const webpAdapter: ScriptureAdapter = {
   translationId: 'webp',
   async listBooks() {
-    const response = await fetch('/scripture/webp/manifest.json');
-    if (!response.ok) throw new Error('WEB manifest unavailable');
-    return response.json();
+    const r = await fetch('/scripture/webp/manifest.json');
+    if (!r.ok) throw new Error('WEB manifest unavailable');
+    return r.json();
   },
-  async getChapter(ref: ScriptureRef): Promise<ScriptureChapter> {
+  async getChapter(ref) {
     if (ref.translationId !== 'webp') throw new Error(`Unsupported translation: ${ref.translationId}`);
-    const response = await fetch(`/scripture/webp/chapters/${ref.book}.${ref.chapter}.json`);
-    if (!response.ok) throw new Error(`WEB passage unavailable: ${ref.book} ${ref.chapter}`);
-    return response.json();
-  },
+    const r = await fetch(`/scripture/webp/chapters/${ref.book}.${ref.chapter}.json`);
+    if (!r.ok) throw new Error(`WEB passage unavailable: ${ref.book} ${ref.chapter}`);
+    return r.json();
+  }
 };
 ```
 
-- [ ] **Step 5: Implement a deterministic importer around eBible's VPL archive**
+- [ ] **Step 4: Implement the deterministic VPL importer**
 
-`scripts/import-webp.mjs` must accept exactly two arguments:
+Source archive: eBible `engwebp_vpl.zip`. Haiola's BibleWorks/VPL export is verse-oriented canonical text. Parse each canonical verse with:
 
-```bash
-node scripts/import-webp.mjs ./vendor/engwebp_vpl.zip ./public/scripture/webp
+```js
+const VPL = /^([1-3]?[A-Za-z]{2})\s+(\d+):(\d+)\s+(.+)$/;
 ```
 
-Implementation requirements:
+Normalize `rawBook.toUpperCase()` through this exact map:
 
-1. Unzip into a temporary directory using Node's `child_process.execFileSync('unzip', ['-q', archive, '-d', tempDir])` so no ZIP library enters the runtime bundle.
-2. Locate the archive's `.txt` VPL file and `.sql` metadata file.
-3. Parse verse lines with one anchored regular expression after inspecting the downloaded source file in the task branch. Fail the import if any non-empty canonical verse line does not match; do not silently skip malformed verse lines.
-4. Normalize book IDs to the USFM three-character identifiers used in the source archive.
-5. Write one JSON file per chapter with exact verse text and no textual normalization beyond line-ending removal.
-6. Write `manifest.json` with every imported book and chapter count.
-7. Assert exactly 66 books for `engwebp`; abort if not.
-
-The generated chapter shape is:
-
-```json
-{
-  "translationId": "webp",
-  "book": "JHN",
-  "chapter": 1,
-  "verses": [
-    { "verse": 1, "text": "...exact imported text..." }
-  ]
-}
+```js
+const BOOKS = {
+  GEN:'GEN', EXO:'EXO', LEV:'LEV', NUM:'NUM', DEU:'DEU', JOS:'JOS', JDG:'JDG', RUT:'RUT',
+  '1SA':'1SA', '2SA':'2SA', '1KI':'1KI', '2KI':'2KI', '1CH':'1CH', '2CH':'2CH', EZR:'EZR', NEH:'NEH', EST:'EST', JOB:'JOB', PSA:'PSA', PRO:'PRO', ECC:'ECC', SOL:'SNG',
+  ISA:'ISA', JER:'JER', LAM:'LAM', EZE:'EZK', DAN:'DAN', HOS:'HOS', JOE:'JOL', AMO:'AMO', OBA:'OBA', JON:'JON', MIC:'MIC', NAH:'NAM', HAB:'HAB', ZEP:'ZEP', HAG:'HAG', ZEC:'ZEC', MAL:'MAL',
+  MAT:'MAT', MAR:'MRK', LUK:'LUK', JOH:'JHN', ACT:'ACT', ROM:'ROM', '1CO':'1CO', '2CO':'2CO', GAL:'GAL', EPH:'EPH', PHI:'PHP', COL:'COL', '1TH':'1TH', '2TH':'2TH', '1TI':'1TI', '2TI':'2TI', TIT:'TIT', PHM:'PHM', HEB:'HEB', JAM:'JAS', '1PE':'1PE', '2PE':'2PE', '1JO':'1JN', '2JO':'2JN', '3JO':'3JN', JUD:'JUD', REV:'REV'
+};
 ```
 
-Do not hand-edit generated verse text.
+The importer must:
 
-- [ ] **Step 6: Import the corpus and verify invariants**
+```js
+const [archive, outDir] = process.argv.slice(2);
+if (!archive || !outDir) throw new Error('usage: node scripts/import-webp.mjs <engwebp_vpl.zip> <output-dir>');
+```
 
-Download `engwebp_vpl.zip` from eBible's developer formats page into `vendor/` for the import only; do not commit the ZIP.
+1. unzip to `fs.mkdtempSync(path.join(os.tmpdir(), 'upper-room-webp-'))` using `execFileSync('unzip', ['-q', archive, '-d', tempDir])`;
+2. recursively find the largest `.txt`/`.vpltxt` file containing canonical verse lines;
+3. for every non-empty line beginning with a three-character BibleWorks code, require `VPL` to match or throw with the line number;
+4. reject any book code absent from `BOOKS`;
+5. preserve the captured verse text exactly, except stripping the source line ending;
+6. group into `{translationId:'webp',book,chapter,verses:[{verse,text}]}`;
+7. write `chapters/BOOK.CHAPTER.json`;
+8. write a manifest of `{id,name,chapters}` for 66 books;
+9. throw unless the manifest has exactly 66 entries.
 
-Run:
+Do not hand-edit generated Scripture text.
+
+- [ ] **Step 5: Import and verify**
 
 ```bash
+mkdir -p vendor public/scripture/webp
+# download https://ebible.org/Scriptures/engwebp_vpl.zip to vendor/engwebp_vpl.zip
 node scripts/import-webp.mjs vendor/engwebp_vpl.zip public/scripture/webp
-node -e "const m=require('./public/scripture/webp/manifest.json'); if(m.length!==66) process.exit(1); console.log(m.length)"
+node -e "const m=require('./public/scripture/webp/manifest.json'); if(m.length!==66) process.exit(1); console.log('books',m.length)"
 ```
 
-Expected output ends with `66`.
+Expected: `books 66`.
 
-- [ ] **Step 7: Run adapter tests and build**
+- [ ] **Step 6: Run tests/build and commit**
 
 ```bash
 npm test -- src/features/scripture/webpAdapter.test.ts
 npm run build
-```
-
-Expected: PASS and build exit 0.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add scripts/import-webp.mjs public/scripture/webp src/features/scripture
+git add scripts public/scripture src/features/scripture
 git commit -m "feat: add canonical WEB Scripture adapter"
 ```
 
 ---
 
-### Task 3: Build the Scripture reader and double-tap canonical selection
+### Task 3: Build touch-first reading and selection
 
-**Files:**
-- Create: `src/features/scripture/Reader.tsx`
-- Create: `src/features/scripture/Reader.test.tsx`
-- Create: `src/features/selection/selection.ts`
-- Create: `src/features/selection/selection.test.ts`
-- Create: `src/features/selection/SelectionLayer.tsx`
-- Create: `src/features/selection/SelectionLayer.test.tsx`
+**Files:** create `Reader.tsx`, `Reader.test.tsx`, `selection.ts`, `selection.test.ts`, `SelectionLayer.tsx`, `SelectionLayer.test.tsx`.
 
-**Interfaces:**
-- Consumes: `ScriptureChapter` from Task 2.
-- Produces: `ScriptureSelection`, `SelectionAction`, `selectionReducer`, `Reader` callbacks `onViewportChange` and `onSelectionComplete`.
+**Interfaces:** consumes `ScriptureChapter`; produces canonical `ScriptureSelection` and callbacks `onViewportChange`, `onSelectionComplete`.
 
-- [ ] **Step 1: Define selection coordinates independent of rendered pixels**
+- [ ] **Step 1: Define selection**
 
 ```ts
 export type ScriptureSelection = {
@@ -464,102 +373,67 @@ export type ScriptureSelection = {
 };
 ```
 
-Tokenization rule for v0: preserve whitespace and punctuation in verse text but expose selectable word/punctuation tokens using `Intl.Segmenter('en', { granularity: 'word' })`; store each token's starting character offset in the exact verse string.
+Use `Intl.Segmenter('en', { granularity: 'word' })`; every rendered token stores its verse, token index, and exact starting character offset.
 
 - [ ] **Step 2: Write reducer tests**
 
 ```ts
-it('starts on one token and expands forward', () => {
-  const started = selectionReducer(idleState, { type: 'start', verse: 5, token: 3 });
-  const expanded = selectionReducer(started, { type: 'extend', verse: 5, token: 7 });
-  expect(expanded.anchor).toEqual({ verse: 5, token: 3 });
-  expect(expanded.focus).toEqual({ verse: 5, token: 7 });
+it('starts on one token and expands', () => {
+  const a = selectionReducer(idleState, { type:'start', verse:5, token:3 });
+  const b = selectionReducer(a, { type:'extend', verse:5, token:7 });
+  expect(b.anchor).toEqual({ verse:5, token:3 });
+  expect(b.focus).toEqual({ verse:5, token:7 });
 });
 
-it('normalizes backward drags', () => {
-  const selection = normalizeRange({ verse: 5, token: 7 }, { verse: 4, token: 2 });
-  expect(selection.start).toEqual({ verse: 4, token: 2 });
-  expect(selection.end).toEqual({ verse: 5, token: 7 });
+it('normalizes backward drag ranges', () => {
+  expect(normalizeRange({verse:5,token:7},{verse:4,token:2})).toEqual({
+    start:{verse:4,token:2}, end:{verse:5,token:7}
+  });
 });
 ```
 
-- [ ] **Step 3: Verify tests fail**
+Run and expect FAIL:
 
 ```bash
 npm test -- src/features/selection/selection.test.ts
 ```
 
-Expected: FAIL because reducer/helpers are absent.
+- [ ] **Step 3: Implement pure reducer and token extraction**
 
-- [ ] **Step 4: Implement pure selection state first**
+States: `idle`, `selecting`, `complete`. DOM/pointer events stay outside the reducer.
 
-Use a reducer with states `idle | selecting | complete`. Keep DOM events out of the reducer so touch behavior can be tested separately.
+- [ ] **Step 4: Write interaction tests for the double-tap law**
 
-- [ ] **Step 5: Write interaction tests for double-tap and drag**
+The second tap must land on the same token within 350ms. Then pointer movement extends the range. Assert completion contains exact text plus canonical offsets.
 
-Render `SelectionLayer` over a five-token verse. Use fake timers to prove:
-
-```tsx
-await user.pointer([
-  { keys: '[TouchA>]', target: token3 }, { keys: '[/TouchA]' },
-  { keys: '[TouchA>]', target: token3 }, { keys: '[/TouchA]' },
-]);
-expect(onSelectionStart).toHaveBeenCalledWith(expect.objectContaining({ verse: 1, token: 2 }));
-```
-
-Then simulate pointer movement to a later token and assert the completed selection contains canonical token/character offsets and exact text.
-
-- [ ] **Step 6: Implement the reader surface**
-
-Each verse renders with explicit verse number and token spans carrying:
+- [ ] **Step 5: Implement Reader tokens**
 
 ```tsx
-<span
-  data-verse={verse.verse}
-  data-token={token.index}
-  data-char={token.charStart}
->
+<span data-verse={verse.verse} data-token={token.index} data-char={token.charStart}>
   {token.text}
 </span>
 ```
 
-Do not add selection toolbars permanently. `SelectionLayer` becomes active only after the double-tap detector fires within 350ms on the same token.
+Normal reading shows no toolbar. Selection furniture appears only after the double-tap detector enters selection mode.
 
-- [ ] **Step 7: Verify the reader/selection suite**
+- [ ] **Step 6: Verify and commit**
 
 ```bash
 npm test -- src/features/scripture/Reader.test.tsx src/features/selection
-```
-
-Expected: PASS.
-
-- [ ] **Step 8: Commit**
-
-```bash
+npm run build
 git add src/features/scripture/Reader* src/features/selection
 git commit -m "feat: add touch-first canonical Scripture selection"
 ```
 
 ---
 
-### Task 4: Create private rooms and append-only durable event admission
+### Task 4: Create private rooms and append-only durable events
 
-**Files:**
-- Create: `supabase/config.toml`
-- Create: `supabase/migrations/20260814190000_upper_room_v0.sql`
-- Create: `src/lib/supabase/env.ts`
-- Create: `src/lib/supabase/client.ts`
-- Create: `src/features/room/types.ts`
-- Create: `src/features/room/api.ts`
-- Create: `src/features/room/api.test.ts`
+**Files:** create Supabase migration, Supabase client/env, room types/API/tests.
 
-**Interfaces:**
-- Produces: `createRoom`, `joinRoomByInvite`, `listRoomEvents`, `appendRoomEvent`; database RPCs `create_room`, `join_room_by_invite`, `append_room_event`.
-- Consumes: authenticated Supabase user and canonical Scripture coordinates.
+**Interfaces:** produces RPCs `create_room`, `join_room_by_invite`, `append_room_event` plus client functions of the same responsibility.
 
-- [ ] **Step 1: Create the database schema with a per-room sequence authority**
-
-Migration core:
+- [ ] **Step 1: Create schema**
 
 ```sql
 create extension if not exists pgcrypto;
@@ -580,7 +454,7 @@ create table public.room_members (
   user_id uuid not null references auth.users(id) on delete cascade,
   display_name text not null,
   joined_at timestamptz not null default now(),
-  primary key (room_id, user_id)
+  primary key (room_id,user_id)
 );
 
 create table public.room_invites (
@@ -597,20 +471,17 @@ create table public.room_events (
   room_id uuid not null references public.rooms(id) on delete cascade,
   seq bigint not null,
   user_id uuid not null references auth.users(id),
-  kind text not null check (kind in (
-    'note','question','recognition','objection','branch_created',
-    'aihyper_proposed','aihyper_admitted','aihyper_refused','return'
-  )),
+  kind text not null check (kind in ('note','question','recognition','objection','branch_created','aihyper_proposed','aihyper_admitted','aihyper_refused','return')),
   scripture jsonb,
   parent_event_id uuid references public.room_events(id),
   branch_id uuid references public.room_events(id),
   payload jsonb not null,
   created_at timestamptz not null default now(),
-  unique (room_id, seq)
+  unique(room_id,seq)
 );
 ```
 
-- [ ] **Step 2: Add fail-closed append RPC**
+- [ ] **Step 2: Implement sequence-authoritative append RPC**
 
 ```sql
 create or replace function public.append_room_event(
@@ -621,103 +492,67 @@ create or replace function public.append_room_event(
   p_branch_id uuid,
   p_payload jsonb
 ) returns public.room_events
-language plpgsql
-security definer
-set search_path = public
+language plpgsql security definer set search_path=public
 as $$
-declare
-  v_seq bigint;
-  v_event public.room_events;
+declare v_seq bigint; v_event public.room_events;
 begin
   if auth.uid() is null then raise exception 'authentication required'; end if;
-  if not exists (
-    select 1 from public.room_members m
-    where m.room_id = p_room_id and m.user_id = auth.uid()
-  ) then raise exception 'room membership required'; end if;
-
-  update public.rooms
-  set last_seq = last_seq + 1
-  where id = p_room_id
-  returning last_seq into v_seq;
-
+  if not exists(select 1 from room_members where room_id=p_room_id and user_id=auth.uid())
+    then raise exception 'room membership required'; end if;
+  update rooms set last_seq=last_seq+1 where id=p_room_id returning last_seq into v_seq;
   if v_seq is null then raise exception 'room not found'; end if;
-
-  insert into public.room_events (
-    room_id, seq, user_id, kind, scripture, parent_event_id, branch_id, payload
-  ) values (
-    p_room_id, v_seq, auth.uid(), p_kind, p_scripture, p_parent_event_id, p_branch_id, p_payload
-  ) returning * into v_event;
-
+  insert into room_events(room_id,seq,user_id,kind,scripture,parent_event_id,branch_id,payload)
+    values(p_room_id,v_seq,auth.uid(),p_kind,p_scripture,p_parent_event_id,p_branch_id,p_payload)
+    returning * into v_event;
   return v_event;
-end;
-$$;
+end $$;
 ```
 
-No update/delete RPC for `room_events` exists in v0.
+No v0 update/delete RPC exists for `room_events`.
 
-- [ ] **Step 3: Add RLS and invite RPCs**
+- [ ] **Step 3: Add RLS and room create/join RPCs**
 
-Enable RLS on all four tables. Policies:
+Policies must prove:
 
-- members can read their room and member list;
-- members can read events from their room;
+- only members can read rooms/member lists/events;
 - clients cannot directly insert/update/delete `room_events`;
-- room creator can read/revoke invite rows;
-- `create_room(title, book, chapter, display_name)` inserts room + creator membership + one invite and returns both room id and invite token;
-- `join_room_by_invite(token, display_name)` inserts membership idempotently and returns room id;
-- no public anonymous read policy exists.
+- creator can inspect/revoke invites;
+- `create_room(title,book,chapter,display_name)` creates room + creator membership + one UUID invite token;
+- `join_room_by_invite(token,display_name)` inserts membership idempotently;
+- anonymous users can read nothing.
 
-- [ ] **Step 4: Write client API tests against a mocked Supabase RPC layer**
+- [ ] **Step 4: Write client tests**
 
 ```ts
-it('preserves server-assigned event sequence', async () => {
-  rpc.mockResolvedValue({ data: { id: 'e1', seq: 8 }, error: null });
-  const event = await appendRoomEvent(client, input);
-  expect(event.seq).toBe(8);
-  expect(rpc).toHaveBeenCalledWith('append_room_event', expect.objectContaining({ p_kind: 'note' }));
+it('preserves server sequence', async () => {
+  rpc.mockResolvedValue({ data:{ id:'e1',seq:8 }, error:null });
+  expect((await appendRoomEvent(client,input)).seq).toBe(8);
 });
 
-it('does not synthesize an event after a failed durable write', async () => {
-  rpc.mockResolvedValue({ data: null, error: { message: 'room membership required' } });
-  await expect(appendRoomEvent(client, input)).rejects.toThrow('room membership required');
+it('does not synthesize failed durable writes', async () => {
+  rpc.mockResolvedValue({ data:null,error:{message:'room membership required'} });
+  await expect(appendRoomEvent(client,input)).rejects.toThrow('room membership required');
 });
 ```
 
-- [ ] **Step 5: Implement the Supabase client wrapper**
-
-`.env.example`:
+- [ ] **Step 5: Configure client environment**
 
 ```dotenv
 VITE_SUPABASE_URL=https://project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_replace_me
 ```
 
-`env.ts` must throw at startup if either variable is missing; never embed a secret/service-role key in the browser.
+`env.ts` throws if either is absent. No browser bundle may contain `service_role`/`sb_secret_*`.
 
-- [ ] **Step 6: Run local Supabase database tests**
+- [ ] **Step 6: Verify locally and commit**
 
 ```bash
 supabase start
 supabase db reset
-```
-
-Then execute a SQL smoke script using three test users that proves:
-
-- outsider cannot select room events;
-- member can select room events;
-- direct client insert into `room_events` is denied;
-- two append RPC calls receive sequences `1`, then `2`;
-- invite join is idempotent.
-
-- [ ] **Step 7: Run application tests**
-
-```bash
 npm test -- src/features/room
 ```
 
-Expected: PASS.
-
-- [ ] **Step 8: Commit**
+SQL smoke evidence must show outsider read denied, member read allowed, direct event insert denied, two append calls sequence `1,2`, and invite join idempotent.
 
 ```bash
 git add supabase src/lib/supabase src/features/room .env.example
@@ -726,21 +561,13 @@ git commit -m "feat: add private append-only study rooms"
 
 ---
 
-### Task 5: Implement presence tabs with sovereign viewport claiming
+### Task 5: Make participant presence a live viewport tab
 
-**Files:**
-- Create: `src/features/presence/types.ts`
-- Create: `src/features/presence/reducer.ts`
-- Create: `src/features/presence/reducer.test.ts`
-- Create: `src/features/presence/roomChannel.ts`
-- Create: `src/features/presence/PresenceTabs.tsx`
-- Create: `src/features/presence/PresenceTabs.test.tsx`
+**Files:** create presence types/reducer/tests/channel/tabs.
 
-**Interfaces:**
-- Consumes: Supabase client, authenticated user, `ScriptureRef`, optional `ScriptureSelection`, optional `branchId`.
-- Produces: `PresenceViewport`, `ObservedLensState`, `createRoomChannel()`, `observeUser(userId)`, `claimObservedLocation()`.
+**Interfaces:** produces `PresenceViewport`, `observeUser`, `claimObservedLocation`, and `createRoomChannel`.
 
-- [ ] **Step 1: Define slow and fast realtime payloads separately**
+- [ ] **Step 1: Define realtime payloads**
 
 ```ts
 export type PresenceViewport = {
@@ -761,391 +588,242 @@ export type ViewportBroadcast = PresenceViewport & {
 };
 ```
 
-Presence `track()` payload changes only when online identity, book, chapter, or branch changes. Throttled anchor/selection movement uses Broadcast event `viewport` at no more than four sends per second.
+Presence `track()` changes only for online identity/book/chapter/branch. Broadcast `viewport` carries anchor/selection movement at max four sends/second, with immediate send on completed selection or branch change.
 
-- [ ] **Step 2: Write pure reducer tests for the sovereignty rule**
+- [ ] **Step 2: Write sovereignty reducer tests**
 
 ```ts
-it('observes Paula without overwriting my saved viewport', () => {
-  const state = observeUser(baseState, 'paula');
-  const moved = receiveRemoteViewport(state, 'paula', paulaAtJohn5);
-  expect(moved.displayed).toEqual(paulaAtJohn5);
-  expect(moved.mine).toEqual(mySavedViewport);
+it('observes Paula without overwriting mine', () => {
+  const s = receiveRemoteViewport(observeUser(baseState,'paula'),'paula',paulaAtJohn5);
+  expect(s.displayed).toEqual(paulaAtJohn5);
+  expect(s.mine).toEqual(mySavedViewport);
 });
 
-it('claims the displayed location on first local navigation', () => {
-  const observing = receiveRemoteViewport(observeUser(baseState, 'paula'), 'paula', paulaAtJohn5);
-  const claimed = claimObservedLocation(observing);
-  expect(claimed.observingUserId).toBeNull();
-  expect(claimed.mine.book).toBe('JHN');
-  expect(claimed.mine.anchorVerse).toBe(5);
+it('claims displayed location on first local gesture', () => {
+  const observed = receiveRemoteViewport(observeUser(baseState,'paula'),'paula',paulaAtJohn5);
+  const s = claimObservedLocation(observed);
+  expect(s.observingUserId).toBeNull();
+  expect(s.mine.anchorVerse).toBe(5);
 });
 ```
 
-- [ ] **Step 3: Run reducer tests and verify failure**
+Run and expect FAIL:
 
 ```bash
 npm test -- src/features/presence/reducer.test.ts
 ```
 
-Expected: FAIL before reducer implementation.
-
-- [ ] **Step 4: Implement `createRoomChannel`**
-
-Channel shape:
+- [ ] **Step 3: Implement channel**
 
 ```ts
 const channel = supabase.channel(`upper-room:${roomId}`, {
-  config: { presence: { key: `${userId}:${clientId}` } },
+  config: { presence: { key: `${userId}:${clientId}` } }
 });
+channel.on('presence',{event:'sync'},handlePresenceSync);
+channel.on('broadcast',{event:'viewport'},handleViewportBroadcast);
 ```
 
-Subscribe to:
+After `SUBSCRIBED`, call `channel.track(slowPresence)`. Send live windows with:
 
 ```ts
-channel.on('presence', { event: 'sync' }, handlePresenceSync);
-channel.on('broadcast', { event: 'viewport' }, handleViewportBroadcast);
+channel.send({ type:'broadcast', event:'viewport', payload:viewport });
 ```
 
-Publish slow state with `channel.track(slowPresence)` after subscription. Publish live viewport with:
+Throttle to 250ms.
 
-```ts
-channel.send({
-  type: 'broadcast',
-  event: 'viewport',
-  payload: viewport,
-});
-```
+- [ ] **Step 4: Write PresenceTabs tests**
 
-Throttle Broadcast to 250ms and send immediately on selection completion or branch change.
+Prove `Me/Paula/Ron` tabs; tapping Paula enters observed lens; remote movement changes displayed window only; first local scroll/select invokes `claimObservedLocation` before applying local movement; tapping Me restores mine; disconnect marks stale/offline.
 
-- [ ] **Step 5: Write component tests**
+- [ ] **Step 5: Implement UI with no synchronization furniture**
 
-Prove:
+Persistent presence is one compact top row. Do not add `Sync`, `Follow`, or `Share focus` controls.
 
-- tabs show `Me`, `Paula`, `Ron`;
-- tapping `Paula` calls `observeUser('paula')`;
-- an observed-tab remote update changes displayed verse;
-- first local scroll calls `claimObservedLocation()` before applying the local viewport update;
-- tapping `Me` restores the user's saved window without mutating Paula's state;
-- disconnected participant gets an offline/stale marker rather than disappearing silently.
-
-- [ ] **Step 6: Implement `PresenceTabs` and integrate with `Reader`**
-
-Persistent chrome stays one compact horizontal row. No `Sync`, `Follow`, or `Share focus` controls exist.
-
-- [ ] **Step 7: Run tests**
+- [ ] **Step 6: Verify and commit**
 
 ```bash
 npm test -- src/features/presence src/features/scripture/Reader.test.tsx
-```
-
-Expected: PASS.
-
-- [ ] **Step 8: Commit**
-
-```bash
 git add src/features/presence src/features/scripture/Reader.tsx
 git commit -m "feat: make participant presence a sovereign viewport"
 ```
 
 ---
 
-### Task 6: Add human witness events, branches, and room memory
+### Task 6: Add human witness, branches, and room memory
 
-**Files:**
-- Create: `src/features/events/types.ts`
-- Create: `src/features/events/projection.ts`
-- Create: `src/features/events/projection.test.ts`
-- Create: `src/features/events/MemorySheet.tsx`
-- Create: `src/features/events/MemorySheet.test.tsx`
-- Modify: `src/features/room/RoomScreen.tsx`
-- Modify: `src/features/room/api.ts`
+**Files:** create event types/projection/tests/memory sheet; modify room screen/API.
 
-**Interfaces:**
-- Consumes: durable events from Task 4 and canonical selections from Task 3.
-- Produces: `projectBranch(events, branchId)`, `admittedEvents(events)`, `MemorySheet`, human action composer.
+**Interfaces:** produces `RoomEvent`, `projectBranch`, `admittedEvents`, human action sheet, `MemorySheet`.
 
-- [ ] **Step 1: Define the discriminated event union**
+- [ ] **Step 1: Define event union**
 
 ```ts
-export type HumanEventKind = 'note' | 'question' | 'recognition' | 'objection' | 'return';
-export type RoomEventKind = HumanEventKind | 'branch_created' | 'aihyper_proposed' | 'aihyper_admitted' | 'aihyper_refused';
+export type RoomEventKind =
+  | 'note' | 'question' | 'recognition' | 'objection' | 'return'
+  | 'branch_created' | 'aihyper_proposed' | 'aihyper_admitted' | 'aihyper_refused';
 
 export type RoomEvent = {
-  id: string;
-  roomId: string;
-  seq: number;
-  userId: string;
-  kind: RoomEventKind;
-  scripture: ScriptureSelection | null;
-  parentEventId: string | null;
-  branchId: string | null;
-  payload: Record<string, unknown>;
-  createdAt: string;
+  id:string; roomId:string; seq:number; userId:string; kind:RoomEventKind;
+  scripture:ScriptureSelection|null; parentEventId:string|null;
+  branchId:string|null; payload:Record<string,unknown>; createdAt:string;
 };
 ```
 
-`return` payload is exactly:
+`return` payload:
 
 ```ts
-type ReturnPayload = {
-  text: string;
-  changed: string;
-  held: string;
-  unresolved: string;
-};
+export type ReturnPayload = { text:string; changed:string; held:string; unresolved:string };
 ```
 
-Empty strings are valid; the app must not force a completed theology worksheet.
+Empty strings are valid.
 
-- [ ] **Step 2: Write branch/admission projection tests**
+- [ ] **Step 2: Write projection tests**
 
 ```ts
-it('keeps refused AI proposals visible but out of admitted state', () => {
-  const visible = projectBranch(eventsWithRefusal, null);
-  expect(visible.some(e => e.kind === 'aihyper_refused')).toBe(true);
-  const admitted = admittedEvents(eventsWithRefusal);
-  expect(admitted.some(e => e.id === refusedProposalId)).toBe(false);
-});
-
-it('projects a branch from the same immutable room history', () => {
-  expect(projectBranch(events, branchEventId).map(e => e.seq)).toEqual([1, 3, 4, 8]);
+it('shows refusal residue but removes proposal from admitted state', () => {
+  expect(projectBranch(eventsWithRefusal,null).some(e=>e.kind==='aihyper_refused')).toBe(true);
+  expect(admittedEvents(eventsWithRefusal).some(e=>e.id===refusedProposalId)).toBe(false);
 });
 ```
 
-- [ ] **Step 3: Implement projection as pure functions**
+Also prove branch projection includes ancestor context and branch descendants from one immutable room history.
 
-Rules:
+- [ ] **Step 3: Implement human actions**
 
-1. root projection includes root events only plus branch-created markers;
-2. branch projection includes ancestor context plus events whose `branchId` belongs to that branch chain;
-3. `aihyper_refused` keeps the proposal/refusal visible as residue but the target proposal is excluded from `admittedEvents`;
-4. original payloads are never edited.
-
-- [ ] **Step 4: Build human action sheet from a Scripture selection**
-
-Actions shown beside AIHYPER:
+Selection action row:
 
 ```text
 Note · Question · Recognition · Objection · Branch · Return
 ```
 
-Each submit calls `appendRoomEvent`; if the RPC fails, retain the typed local draft and show `Not saved — retry`.
+Every submit uses `appendRoomEvent`. Failure preserves typed local text and displays exactly `Not saved — retry.`
 
-- [ ] **Step 5: Build `MemorySheet` tests**
+- [ ] **Step 4: Write and implement MemorySheet**
 
-Assert:
+Tests assert chronological `seq`, human/model provenance labels, event→Scripture navigation, branch entry, refusal residue, and closed-by-default bottom sheet behavior.
 
-- chronological sequence order;
-- human/model provenance labels differ;
-- tapping event calls `onNavigate(event.scripture)`;
-- branch event exposes an `Enter branch` action;
-- refusal shows residue status;
-- memory sheet is closed by default and does not occupy permanent reader width.
-
-- [ ] **Step 6: Implement `MemorySheet` and room navigation**
-
-The sheet is a bottom drawer on narrow screens. Opening an event navigates the reader to the exact canonical selection; it does not manufacture a new durable event.
-
-- [ ] **Step 7: Verify events/memory**
+- [ ] **Step 5: Verify and commit**
 
 ```bash
 npm test -- src/features/events src/features/room
-```
-
-Expected: PASS.
-
-- [ ] **Step 8: Commit**
-
-```bash
 git add src/features/events src/features/room
 git commit -m "feat: preserve human witness and branch memory"
 ```
 
 ---
 
-### Task 7: Build evidence-bounded AIHYPER behind a server-side adapter
+### Task 7: Build evidence-bounded AIHYPER
 
-**Files:**
-- Create: `src/features/aihyper/types.ts`
-- Create: `src/features/aihyper/schema.ts`
-- Create: `src/features/aihyper/schema.test.ts`
-- Create: `src/features/aihyper/api.ts`
-- Create: `src/features/aihyper/AIHyperSheet.tsx`
-- Create: `src/features/aihyper/AIHyperSheet.test.tsx`
-- Create: `supabase/functions/aihyper/provider.ts`
-- Create: `supabase/functions/aihyper/provider.test.ts`
-- Create: `supabase/functions/aihyper/prompt.ts`
-- Create: `supabase/functions/aihyper/index.ts`
+**Files:** create client AIHYPER types/schema/API/sheet/tests and Edge Function provider/prompt/index/tests.
 
-**Interfaces:**
-- Consumes: authenticated room membership, `ScriptureSelection`, AIHYPER mode, optional Ask text, local WEB corpus/reference validator.
-- Produces: validated `AIHyperResult`; durable `aihyper_proposed`, `aihyper_admitted`, and `aihyper_refused` events.
+**Interfaces:** consumes authenticated room membership + selection + mode; produces `AIHyperResult` and durable proposal/admit/refuse events authored by the invoking human.
 
-- [ ] **Step 1: Define a response schema that can represent refusal/unsupported evidence**
+- [ ] **Step 1: Define strict schemas**
 
 ```ts
 export const AIHyperProposalSchema = z.object({
-  kind: z.enum(['crossref', 'context', 'word', 'echo', 'answer']),
-  claim: z.string().min(1).max(600),
-  rationale: z.string().min(1).max(900),
-  scriptureRefs: z.array(z.object({
-    book: z.string().min(3).max(3),
-    chapter: z.number().int().positive(),
-    startVerse: z.number().int().positive(),
-    endVerse: z.number().int().positive().optional(),
+  kind:z.enum(['crossref','context','word','echo','answer']),
+  claim:z.string().min(1).max(600),
+  rationale:z.string().min(1).max(900),
+  scriptureRefs:z.array(z.object({
+    book:z.string().regex(/^[1-3A-Z][A-Z]{2}$/),
+    chapter:z.number().int().positive(),
+    startVerse:z.number().int().positive(),
+    endVerse:z.number().int().positive().optional()
   })).max(8),
-  evidenceRefs: z.array(z.object({
-    type: z.enum(['scripture', 'book_context', 'lexical']),
-    id: z.string().min(1),
+  evidenceRefs:z.array(z.object({
+    type:z.enum(['scripture','book_context','lexical']),
+    id:z.string().min(1)
   })).max(12),
-  confidence: z.enum(['strong', 'possible', 'uncertain']),
-});
+  confidence:z.enum(['strong','possible','uncertain'])
+}).strict();
 
-export const AIHyperResultSchema = z.discriminatedUnion('status', [
-  z.object({ status: z.literal('ok'), proposals: z.array(AIHyperProposalSchema).min(1).max(6) }),
-  z.object({ status: z.literal('unsupported'), reason: z.string().min(1).max(400) }),
+export const AIHyperResultSchema = z.discriminatedUnion('status',[
+  z.object({status:z.literal('ok'),proposals:z.array(AIHyperProposalSchema).min(1).max(6)}),
+  z.object({status:z.literal('unsupported'),reason:z.string().min(1).max(400)})
 ]);
 ```
 
-- [ ] **Step 2: Write schema validation tests**
+- [ ] **Step 2: Write schema tests**
 
-Reject:
+Reject missing lexical evidence for `word`, >6 proposals, bad book IDs, empty rationale, unknown fields. Accept explicit unsupported result.
 
-- missing evidence refs for a `word` claim;
-- more than six proposals;
-- invalid three-letter Scripture book IDs;
-- empty rationale;
-- arbitrary model fields not represented by the schema.
-
-Accept an explicit `unsupported` result.
-
-- [ ] **Step 3: Implement the provider boundary using Gemini REST**
-
-`provider.ts` exports:
+- [ ] **Step 3: Implement Gemini provider boundary**
 
 ```ts
-export async function generateStructuredAIHyper(args: {
-  apiKey: string;
-  model: string;
-  systemInstruction: string;
-  prompt: string;
-  fetchImpl?: typeof fetch;
-}): Promise<unknown>;
+export async function generateStructuredAIHyper(args:{
+  apiKey:string; model:string; systemInstruction:string; prompt:string; fetchImpl?:typeof fetch;
+}):Promise<unknown> {
+  const f=args.fetchImpl ?? fetch;
+  const r=await f(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(args.model)}:generateContent`,{
+    method:'POST',
+    headers:{'content-type':'application/json','x-goog-api-key':args.apiKey},
+    body:JSON.stringify({
+      system_instruction:{parts:[{text:args.systemInstruction}]},
+      contents:[{role:'user',parts:[{text:args.prompt}]}],
+      generationConfig:{responseMimeType:'application/json'}
+    })
+  });
+  if(!r.ok) throw new Error(`Gemini request failed: ${r.status}`);
+  return r.json();
+}
 ```
 
-Call:
-
-```ts
-await fetchImpl(
-  `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-  {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-goog-api-key': apiKey,
-    },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemInstruction }] },
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json' },
-    }),
-  },
-);
-```
-
-Runtime secrets:
+Secrets:
 
 ```text
 GEMINI_API_KEY
 AIHYPER_MODEL=gemini-3.6-flash
 ```
 
-The model name remains environment-configurable; the event receipt records the actual model string used.
+Model string is configurable and copied into the model receipt.
 
 - [ ] **Step 4: Write provider tests with mocked fetch**
 
-Prove:
+Prove key stays server-side, non-2xx becomes typed failure, malformed JSON is rejected, validated JSON reaches Zod gate, and receipt records provider/model/mode/time.
 
-- API key is sent only from the server function;
-- non-2xx provider response becomes a typed service error;
-- malformed JSON is rejected;
-- valid JSON reaches Zod validation;
-- model receipt records provider, model, invocation timestamp, and request mode.
+- [ ] **Step 5: Implement evidence gate**
 
-- [ ] **Step 5: Implement the evidence gate before durable admission**
+For every returned Scripture ref, load WEB chapter and verify verse existence; attach exact verse text to evidence. Drop any proposal with unresolvable Scripture refs.
 
-For every model-returned Scripture reference:
+For `word`: if no curated lexical evidence exists, return:
 
-1. load the referenced chapter from the server-side WEB corpus or generated lookup;
-2. verify start/end verses exist;
-3. attach exact verse text as `evidenceRefs` metadata;
-4. discard any proposal whose cited Scripture reference cannot be resolved.
+```json
+{"status":"unsupported","reason":"Lexical evidence source is not configured for this claim."}
+```
 
-For v0 `word` claims:
+For `context`: allow canonical/literary claims supported by Scripture refs; refuse external historical facts unless backed by a future curated `book_context` record. Model-generated assertions never count as their own evidence.
 
-- if no configured lexical evidence record exists, return `status: 'unsupported'` with reason `Lexical evidence source is not configured for this claim.`
-- never allow the model's own generated etymology or gloss to count as evidence.
+- [ ] **Step 6: Implement Edge Function membership boundary**
 
-For `context` claims:
+Require Bearer JWT; create a request-scoped Supabase client; verify room membership; parse request; call provider; evidence-filter result; return `AIHyperResult + modelReceipt`; do not append room events in the function.
 
-- permit canonical/literary context supported by Scripture references;
-- reject external historical-date/person claims unless a future curated `book_context` evidence record exists.
+- [ ] **Step 7: Implement AIHYPER sheet**
 
-This keeps Words and Context visible without rewarding unsupported certainty.
-
-- [ ] **Step 6: Implement the Edge Function membership boundary**
-
-`index.ts` must:
-
-1. require `Authorization: Bearer <user jwt>`;
-2. instantiate a Supabase client using the request JWT and publishable key for membership reads;
-3. verify caller is a member of `roomId`;
-4. parse selection/mode with Zod;
-5. call provider;
-6. validate/filter evidence;
-7. return the proposal result plus `modelReceipt`;
-8. never write a durable room event itself.
-
-The browser writes the proposal event only after receiving a validated result, keeping the invoking human attributable as the event author.
-
-- [ ] **Step 7: Build the AIHYPER bottom sheet**
-
-From an active selection show exactly:
+Menu exactly:
 
 ```text
 Crossrefs · Context · Words · Echoes · Ask
 ```
 
-An `ok` proposal card provides:
+Proposal actions:
 
 ```text
 Open passage · Add to room · Branch · Refuse
 ```
 
-Behavior:
+`Open passage` is ephemeral. `Add to room` writes proposal then admission. `Branch` writes proposal/admission then branch event. `Refuse` writes proposal plus refusal residue. Unsupported result creates no event unless human separately writes a note.
 
-- `Open passage` navigates ephemerally only;
-- `Add to room` writes `aihyper_proposed` then `aihyper_admitted` referring to that proposal;
-- `Branch` writes proposal/admission plus `branch_created` parented to the admitted proposal;
-- `Refuse` writes proposal plus `aihyper_refused` and preserves residue;
-- `unsupported` displays its reason and creates no event unless the human explicitly adds a note about it.
-
-- [ ] **Step 8: Verify AIHYPER without a live model key**
+- [ ] **Step 8: Verify mocked AI and one live smoke**
 
 ```bash
 npm test -- src/features/aihyper
 supabase functions serve aihyper --env-file supabase/.env.test
 ```
 
-Run function tests with mocked provider responses; no CI test depends on billable model calls.
+CI uses mocked provider only. With real `GEMINI_API_KEY`, manually select John 1:5 → Crossrefs and verify at least one server-validated openable Scripture reference or an explicit unsupported/error state. Do not test for a predetermined theology.
 
-- [ ] **Step 9: Manual one-shot provider smoke test**
-
-With a real `GEMINI_API_KEY`, select John 1:5 and invoke `Crossrefs`. Verify the UI returns at least one openable, server-validated Scripture reference or an explicit unsupported/error state. Save the model receipt in test evidence; do not assert a specific theological answer.
-
-- [ ] **Step 10: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add src/features/aihyper supabase/functions/aihyper
@@ -1154,36 +832,26 @@ git commit -m "feat: add evidence-bounded AIHYPER proposals"
 
 ---
 
-### Task 8: Assemble the three-person room surface and fail-soft behavior
+### Task 8: Assemble the three-person field-test flow
 
-**Files:**
-- Create: `src/features/room/RoomScreen.tsx`
-- Create: `src/features/room/RoomScreen.test.tsx`
-- Modify: `src/app/App.tsx`
-- Modify: `src/styles.css`
-- Modify: `vite.config.ts`
-- Create: `tests/upper-room.spec.ts`
+**Files:** create/modify `RoomScreen`, app wiring, styles, `tests/upper-room.spec.ts`, PWA behavior.
 
-**Interfaces:**
-- Consumes: all previous feature modules.
-- Produces: complete v0 field-test flow.
+**Interfaces:** consumes all previous modules; produces complete v0.
 
-- [ ] **Step 1: Write the integration tests before wiring**
+- [ ] **Step 1: Write RoomScreen integration tests with fake services**
 
-Test `RoomScreen` with fake adapters/services to prove:
+Prove:
 
-1. Scripture loads when presence service is offline.
-2. Human Note remains available when AIHYPER is offline.
-3. observing Paula changes only the displayed lens;
-4. first local scroll while observing Paula claims Paula's current location into `mine`;
-5. selecting text opens human actions and AIHYPER actions;
-6. failed durable write keeps the typed draft with `Not saved — retry`;
-7. tapping a memory event navigates to the exact selection;
-8. no viewport update calls `appendRoomEvent`.
+1. Scripture still loads if presence service is offline.
+2. Human Note remains usable if AIHYPER is offline.
+3. observing Paula changes only displayed lens.
+4. first local gesture while observing claims Paula's displayed location into mine.
+5. selection opens human + AIHYPER actions.
+6. failed durable write preserves draft with `Not saved — retry.`
+7. memory event navigates to exact selection.
+8. viewport update never calls `appendRoomEvent`.
 
-- [ ] **Step 2: Wire `RoomScreen` around one source of displayed-view truth**
-
-Derive the visible chapter from:
+- [ ] **Step 2: Wire one source of displayed-view truth**
 
 ```ts
 const displayedViewport = presenceState.observingUserId
@@ -1191,22 +859,13 @@ const displayedViewport = presenceState.observingUserId
   : presenceState.mine;
 ```
 
-The reader never reads remote presence maps directly. All observation/claim behavior goes through the presence reducer.
+Reader never reads remote presence maps directly.
 
-- [ ] **Step 3: Implement navigation without permanent furniture**
+- [ ] **Step 3: Keep UI furniture minimal**
 
-Top chrome contains:
+Top chrome: room title/current book+chapter, presence tabs, one memory button. No bottom nav. Selection summons actions. Memory is bottom sheet.
 
-- `Upper Room` / room title;
-- current book + chapter control;
-- compact presence tabs;
-- one memory button.
-
-No bottom navigation bar. AIHYPER/human actions appear only after selection. Memory is a sheet.
-
-- [ ] **Step 4: Add offline/failure copy**
-
-Exact copy:
+Failure copy is exact:
 
 ```text
 Presence unavailable — reading still works.
@@ -1216,42 +875,25 @@ Passage unavailable offline.
 Paula is offline — showing their last live window.
 ```
 
-Never replace a failed WEB chapter with another translation.
+- [ ] **Step 4: Add deterministic Playwright three-context flow**
 
-- [ ] **Step 5: Add Playwright field-flow test with three browser contexts**
-
-`tests/upper-room.spec.ts` launches three authenticated storage states named `lu`, `paula`, and `ron` against local Supabase.
-
-Test flow:
+Use three authenticated storage states (`lu`, `paula`, `ron`) against local Supabase. Core assertion sequence:
 
 ```ts
-// conceptual sequence, implemented with actual locators
 await lu.goto(roomUrl);
 await paula.goto(roomUrl);
 await ron.goto(roomUrl);
-await paula.getByText('John 1:5').scrollIntoViewIfNeeded();
-await lu.getByRole('button', { name: 'Paula' }).click();
+await lu.getByRole('button',{name:'Paula'}).click();
 await expect(lu.getByTestId('viewport-owner')).toHaveText('Paula');
-await lu.getByText(/light shines/i).dblclick();
+await lu.getByTestId('reader').dispatchEvent('wheel',{deltaY:300});
 await expect(lu.getByTestId('viewport-owner')).toHaveText('Me');
-await expect(lu.getByRole('button', { name: 'Crossrefs' })).toBeVisible();
 ```
 
-Stub AIHYPER network output in deterministic E2E; the separate Task 7 smoke test covers the live provider.
+Then select text, write a human note, admit one deterministic AI fixture proposal, refuse another, create a branch, reload all three, and prove identical durable event order plus refusal residue.
 
-- [ ] **Step 6: Prove reload/re-entry determinism**
+AIHYPER network is stubbed in E2E; Task 7 covers live provider smoke.
 
-In Playwright:
-
-1. create a Note;
-2. create a branch;
-3. write a refused AIHYPER fixture proposal;
-4. reload all three contexts;
-5. assert event sequence/order is identical;
-6. assert refusal residue remains visible;
-7. assert no durable viewport events exist.
-
-- [ ] **Step 7: Verify PWA/build and full test suite**
+- [ ] **Step 5: Verify PWA and full suite**
 
 ```bash
 npm test
@@ -1262,29 +904,27 @@ npm run test:e2e
 
 Expected: all exit 0.
 
-- [ ] **Step 8: Run the manual three-phone specimen checklist**
-
-On three real phones in the same physical room:
+- [ ] **Step 6: Run real three-phone specimen**
 
 ```text
-[ ] all three join the same private room
-[ ] each can wander independently
-[ ] Lu taps Paula and sees Paula's live reading window
-[ ] Lu touches/scrolls while observing Paula and takes that exact place into Lu's own window
-[ ] Ron double-taps a word and drags a multi-word selection
+[ ] three authenticated people enter same private room
+[ ] each wanders independently
+[ ] Lu taps Paula and sees Paula's live window
+[ ] Lu scrolls/selects and takes that exact place into Lu's own window
+[ ] Ron double-taps and drags a multi-word selection
 [ ] human Note works without AIHYPER
-[ ] AIHYPER Crossrefs returns a validated proposal or explicit unsupported/error
-[ ] one useful proposal is admitted
-[ ] one bad proposal is refused and remains visible residue
-[ ] one branch is created from a selected passage
-[ ] all three leave and re-enter
-[ ] durable history and branch projection recover intact
-[ ] no one sees a public/share/publish action
+[ ] AIHYPER produces validated proposal or explicit unsupported/error
+[ ] useful proposal admitted
+[ ] bad proposal refused and visible as residue
+[ ] branch created
+[ ] all leave/re-enter
+[ ] durable history/branch recover intact
+[ ] no public/share/publish action exists
 ```
 
-Record only technical specimen notes unless all participants separately consent to preserve personal study content.
+Record only technical specimen notes unless each person separately consents to preserve personal study content.
 
-- [ ] **Step 9: Commit the assembled v0**
+- [ ] **Step 7: Commit assembled v0**
 
 ```bash
 git add src tests vite.config.ts
@@ -1293,20 +933,13 @@ git commit -m "feat: assemble Upper Room v0 field-test flow"
 
 ---
 
-### Task 9: Documentation, repository evidence, and PR readiness
+### Task 9: Document and prepare the PR for Completion
 
-**Files:**
-- Create: `README.md`
-- Create: `docs/field-test-v0.md`
-- Modify: `docs/superpowers/specs/2026-08-14-upper-room-v0-design.md` only if implementation discovered a factual mismatch; do not silently change product law.
+**Files:** create `README.md`, `docs/field-test-v0.md`.
 
-**Interfaces:**
-- Consumes: verified commands/results from Tasks 1–8.
-- Produces: implementer/operator instructions and a complete PR evidence packet.
+**Interfaces:** produces operator instructions, field evidence, PR handoff.
 
-- [ ] **Step 1: Write README around the actual product law**
-
-README opening:
+- [ ] **Step 1: Write README opening exactly from product law**
 
 ```markdown
 # Upper Room
@@ -1316,11 +949,9 @@ Upper Room is a phone-first shared Scripture presence room.
 The passage is the primary surface. Each participant keeps a sovereign reading window. Tap another person's presence to look through their current viewport; the first local reading gesture brings that same location into your own window. AIHYPER appears only after an intentional Scripture selection and proposes attributable, evidence-bounded doors rather than unsolicited teaching.
 ```
 
-Include local setup, Supabase setup, WEBP corpus import, Edge Function secrets, test commands, and privacy boundary.
+Then document local setup, WEB import, Supabase setup, Edge Function secrets, test commands, and room-private boundary.
 
-- [ ] **Step 2: Write `docs/field-test-v0.md`**
-
-Include the exact three-phone checklist from Task 8 plus a specimen-note template:
+- [ ] **Step 2: Write field-test record template**
 
 ```markdown
 ## Technical witness
@@ -1339,34 +970,29 @@ Include the exact three-phone checklist from Task 8 plus a specimen-note templat
 - What should remain unresolved?
 ```
 
-- [ ] **Step 3: Run fresh completion verification**
+- [ ] **Step 3: Fresh completion verification**
 
 ```bash
 npm ci
 npm test
 npm run build
 npm run test:e2e
-```
-
-Also run:
-
-```bash
-git status --short
 git diff --check
+git status --short
 ```
 
-Expected: verification commands exit 0; `git diff --check` prints nothing.
+Expected: test/build/E2E/diff-check exit 0; no unexplained working-tree changes.
 
-- [ ] **Step 4: Commit documentation**
+- [ ] **Step 4: Commit docs**
 
 ```bash
 git add README.md docs
 git commit -m "docs: add Upper Room v0 field-test guide"
 ```
 
-- [ ] **Step 5: Open a PR with implementation evidence**
+- [ ] **Step 5: Open PR with evidence**
 
-PR body must include:
+PR body:
 
 ```markdown
 ## What this proves
@@ -1388,52 +1014,18 @@ PR body must include:
 Room contents remain private-to-room. v0 exposes no public publishing action.
 ```
 
-- [ ] **Step 6: Hand the PR to review/PR Completion**
+- [ ] **Step 6: Hand to Develoop review resolution and PR Completion**
 
-Use Develoop review resolution and PR Completion only after the PR exists and fresh verification evidence is recorded. Do not merge automatically; PR Completion must bind any later landing approval to the exact ready head SHA.
+PR Completion may prepare, repair, observe checks/reviews, and reach verified-ready. Landing still requires explicit approval for the exact ready head SHA.
 
 ---
 
-## Self-review record
+## Self-review Record
 
-### Spec coverage
+**Spec coverage:** Scripture surface Tasks 1–3/8; presence-tabs Task 5/8; selection Task 3; private durable rooms Task 4; human witness/branches/return Task 6; AIHYPER Task 7; fail-soft/PWA/re-entry Task 8; field specimen and PR evidence Tasks 8–9.
 
-- Scripture-first phone surface: Tasks 1, 2, 3, 8.
-- presence-as-viewport / no forced sync: Tasks 5, 8.
-- double-tap range selection: Task 3.
-- private durable rooms and membership: Task 4.
-- append-only event history and refusal residue: Tasks 4, 6.
-- branches and Return: Task 6.
-- AIHYPER invocation/menu/structured proposal/evidence gate: Task 7.
-- fail-soft behavior: Tasks 7, 8.
-- PWA/offline shell: Tasks 1, 8.
-- deterministic leave/rejoin: Tasks 6, 8.
-- no public publishing: Tasks 4, 8, 9.
-- first three-person field specimen: Tasks 8, 9.
+**Type consistency:** canonical shared nouns are `ScriptureRef`, `ScriptureChapter`, `ScriptureSelection`, `PresenceViewport`, `RoomEvent`, `AIHyperProposal`, `AIHyperResult`.
 
-### Type consistency
+**Authority boundaries:** presence subsystem never appends room events; AIHYPER Edge Function never appends room events; the authenticated invoking client remains durable event author; model output never becomes Scripture.
 
-Canonical shared nouns are fixed across tasks:
-
-```text
-ScriptureRef
-ScriptureChapter
-ScriptureSelection
-PresenceViewport
-RoomEvent
-AIHyperProposal
-AIHyperResult
-```
-
-The presence subsystem never appends room events. AIHYPER Edge Function never appends room events. The authenticated invoking client remains the durable event author.
-
-### Primary implementation references
-
-- Vite current getting-started guide: `https://vite.dev/guide/`
-- Supabase Realtime Presence: `https://supabase.com/docs/guides/realtime/presence`
-- Supabase Realtime overview/Broadcast guidance: `https://supabase.com/docs/guides/realtime`
-- Supabase JavaScript initialization: `https://supabase.com/docs/reference/javascript/initializing`
-- eBible WEBP developer formats/public-domain statement: `https://ebible.org/details.php?all=1&id=engwebp`
-- Gemini Generate Content REST API: `https://ai.google.dev/api/generate-content`
-
-The plan intentionally keeps the Gemini model configurable even though the initial environment example uses `gemini-3.6-flash`.
+**Primary references:** Vite guide `https://vite.dev/guide/`; Supabase Presence `https://supabase.com/docs/guides/realtime/presence`; Supabase Realtime/Broadcast `https://supabase.com/docs/guides/realtime`; eBible WEBP formats `https://ebible.org/details.php?all=1&id=engwebp`; Haiola BibleWorks/VPL description `https://haiola.org/haiola.htm`; Gemini Generate Content `https://ai.google.dev/api/generate-content`.
