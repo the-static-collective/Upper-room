@@ -13,8 +13,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install dependencies
-        run: npm install
+      - name: Reconstruct dependency lock
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Refuse dependency drift
+        run: sha256sum -c dependency-lock.sha256
+      - name: Install verified dependencies
+        run: npm ci
       - name: Unit and component tests
         run: npm test
       - name: Production build
