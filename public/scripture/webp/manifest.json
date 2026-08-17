@@ -1,0 +1,21 @@
+{
+  "translationId": "webp",
+  "translationName": "World English Bible",
+  "edition": "Protestant",
+  "canonicalBookCount": 66,
+  "source": {
+    "publisher": "eBible.org",
+    "url": "https://ebible.org/engwebp/",
+    "chapterUrlPattern": "https://ebible.org/engwebp/{BOOK}{CHAPTER}.htm",
+    "license": "Public Domain",
+    "witnessedAt": "2026-08-16"
+  },
+  "books": [
+    {
+      "id": "JHN",
+      "name": "John",
+      "chapters": 21,
+      "availableChapters": [1]
+    }
+  ]
+}

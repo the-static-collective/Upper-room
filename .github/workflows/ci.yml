@@ -1,0 +1,37 @@
+name: Upper Room CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Reconstruct dependency lock
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Refuse dependency drift
+        run: sha256sum -c dependency-lock.sha256
+      - name: Install verified dependencies
+        run: npm ci
+      - name: Unit and component tests
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Phone-shaped browser witness
+        run: npm run test:e2e
+      - name: Preserve milestone B proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: upper-room-milestone-b-proof
+          path: |
+            package-lock.json
+            test-results/upper-room-john1.png
+          if-no-files-found: error
