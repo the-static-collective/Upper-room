@@ -23,3 +23,11 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Phone-shaped browser witness
         run: npm run test:e2e
+      - name: Preserve milestone B proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: upper-room-milestone-b-proof
+          path: |
+            package-lock.json
+            test-results/upper-room-john1.png
+          if-no-files-found: error
