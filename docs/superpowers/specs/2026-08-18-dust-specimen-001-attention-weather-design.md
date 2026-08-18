@@ -1,6 +1,6 @@
 # Dust Specimen 001 — Attention Weather
 
-**Status:** Approved direction / design review gate  
+**Status:** Implemented / review-ready specimen  
 **Date:** 2026-08-18  
 **Repository:** `the-static-collective/Upper-room`
 
@@ -42,7 +42,7 @@ A human may eventually choose to preserve a meaningful trace, but explicit prese
 
 The first implementation is intentionally smaller than the eventual realtime room feature.
 
-Upper Room currently has the Scripture heartbeat but not durable room state, presence, selection, or AIHYPER wired into the executable application. Therefore Dust Specimen 001 should first exist as a **pure domain module** exercised by synthetic multi-reader observations over John 1.
+Upper Room currently has the Scripture heartbeat but not durable room state, presence, selection, or AIHYPER wired into the executable application. Therefore Dust Specimen 001 exists as a **pure domain module** exercised by synthetic multi-reader observations over John 1.
 
 No Supabase dependency is required for this specimen. No account, participant, or room identity is required to prove the primitive.
 
@@ -180,7 +180,7 @@ Dust is weather, not archive.
 
 Every contribution loses influence with time. The field must naturally return to empty without cleanup by a human moderator.
 
-Specimen 001 should use deterministic time decay so tests can prove:
+Specimen 001 uses deterministic time decay so tests prove:
 
 1. a fresh qualifying observation can create a visible weather sample;
 2. diverse independent qualifying observations can increase the coarse concentration band;
@@ -188,24 +188,24 @@ Specimen 001 should use deterministic time decay so tests can prove:
 4. all observations eventually fall below visibility;
 5. no permanent historical record is required to reconstruct the current field.
 
-Exact durations belong to implementation configuration, not constitutional semantics.
+Exact durations remain implementation configuration, not constitutional semantics.
 
 ---
 
 ## Aggregation
 
-Aggregation should reward **diversity of meaningful attention**, not volume.
+Aggregation rewards **diversity of meaningful attention**, not volume.
 
-Repeated low-value observations must not dominate the field. Multiple distinct qualifying kinds around the same anchor may produce a stronger concentration than many identical events.
+Repeated low-value observations cannot dominate the field. Multiple distinct qualifying kinds around the same anchor may produce a stronger concentration than many identical events.
 
-The first algorithm should therefore favor:
+The first algorithm therefore uses:
 
 - deduplicated qualifying kinds within a bounded time window;
 - capped contribution from duplicate observations;
 - decay over accumulation;
 - coarse bands rather than numeric exposure.
 
-Specimen 001 does not need to infer unique human beings. Its synthetic fixtures should nevertheless prove that event spam cannot create an arbitrarily strong field.
+Specimen 001 does not infer unique human beings. Its fixtures prove that event spam cannot create an arbitrarily strong field.
 
 ---
 
@@ -213,7 +213,7 @@ Specimen 001 does not need to infer unique human beings. Its synthetic fixtures 
 
 The only lawful downstream effect is **perceptual noticeability**.
 
-A consumer may map weather to a faint presentation cue, for example:
+A future consumer may map weather to a faint presentation cue, for example:
 
 - subtle margin density;
 - slight texture around a verse;
@@ -232,15 +232,15 @@ The projection must not:
 - change what counts as reachable;
 - imply agreement.
 
-The first domain specimen does not need to settle the final visual language. It only needs to expose enough state for a later UI to render a cue lawfully.
+Specimen 001 deliberately does **not** connect the domain module to the UI. Existing John 1 rendering remains independent of Dust.
 
 ---
 
 ## Synthetic witness fixtures
 
-The first witness should model three anonymous readers over John 1 without exposing those reader identities in the weather output.
+The executable witness models anonymous attention over John 1 without exposing reader identity in weather output.
 
-At minimum, fixtures should prove:
+Tests prove:
 
 1. **single linger** — creates at most a faint `trace` band;
 2. **diverse independent attention** — can increase concentration without exposing who acted or how many people acted;
@@ -251,21 +251,56 @@ At minimum, fixtures should prove:
 7. **decay** — identical fixtures evaluated later produce weaker or no weather;
 8. **coordinate isolation** — attention on John 1:5 cannot alter John 1:6;
 9. **projection impoverishment** — output exposes no attention kind, participant count, cue source, raw timing history, or source path;
-10. **Scripture immutability** — adapter output and verse order remain structurally unchanged by weather derivation.
+10. **Scripture/application independence** — the existing App continues to render canonical John 1 without importing or requiring Dust.
 
 ---
 
 ## Failure behavior
 
-Dust should fail toward absence.
+Dust fails toward absence or explicit refusal.
 
-- Invalid or incomplete local observations are ignored or rejected; they do not invent weather.
+- Invalid or incomplete local observations are rejected; they do not invent weather.
 - Unknown observation kinds are rejected.
+- Unknown cue sources are rejected.
 - Invalid Scripture coordinates cannot enter a weather sample.
-- If decay configuration is unavailable, the consumer renders no weather rather than non-decaying residue.
-- If weather computation fails, Scripture reading remains fully usable.
+- Future-dated observations are rejected rather than producing negative-age weather.
+- Invalid decay configuration is rejected rather than producing non-decaying residue.
+- If weather computation is absent or fails, Scripture reading remains fully usable because the current App does not depend on the module.
 
 No failure may block Scripture rendering.
+
+---
+
+## Reproducibility repair discovered during implementation
+
+The first test-only RED commit exposed a pre-existing CI weakness before Vitest could run. Upper Room reconstructed `package-lock.json` from the live npm registry and then checked its SHA-256. A later optional Vitest peer publication changed peer resolution and caused npm 10.9.8 Arborist to fail before the checksum gate.
+
+The accepted repair preserves the original contract but fixes its time dependency:
+
+```text
+fixed accepted registry horizon
+          ↓
+reconstruct package-lock.json
+          ↓
+verify dependency-lock.sha256
+          ↓
+npm ci
+```
+
+The horizon is pinned to the registry state that produced the already accepted lock witness. Advancing it is now an explicit dependency-admission act rather than an accidental effect of future package publication.
+
+This repair changes no Dust semantics and adds no dependency.
+
+---
+
+## Implementation evidence
+
+Observed RED → GREEN witnesses:
+
+- **Task 1 RED:** GitHub Actions run `32179007964` reached Vitest only after the repaired dependency gate passed, then failed because `./attentionWeather` did not exist.
+- **Task 2 RED:** run `32179224341` kept all Task 1 eligibility tests green while all nine derivation tests failed because `deriveAttentionWeather` was absent.
+- **Final exact-head GREEN:** run `32179544863` on head `78da60ded3496299accb8c2cc963cc0a954c9b28` passed lock reconstruction/hash verification, `npm ci`, unit/component tests, production build, Chromium installation, phone-shaped Playwright witness, and proof artifact upload.
+- **Final proof artifact:** `upper-room-milestone-b-proof`, artifact `9340284352`, digest `sha256:ea94be419dbe4ededf558bb697afcb39c5424c1557028e724b155e44ef64f918`.
 
 ---
 
@@ -291,7 +326,7 @@ Dust Specimen 001 does not implement:
 
 ## Acceptance criteria
 
-The specimen is successful when deterministic tests prove all of the following:
+The specimen is successful when deterministic evidence proves all of the following:
 
 1. qualifying synthetic attention can derive a coarse weather sample for a Scripture anchor;
 2. raw observations and their kinds are not present in the public projection;
