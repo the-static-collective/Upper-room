@@ -14,7 +14,7 @@ Dust Specimen 001 asks a narrower question:
 
 > **Can prior human attention become faintly perceptible to later readers without becoming ranking, recommendation, consensus, surveillance, or authority?**
 
-The selected answer is **realtime attention weather**: raw reading behavior remains local; only coarse, unattributed, lossy, rapidly decaying traces may enter the shared room projection.
+The selected answer is **realtime attention weather**: raw reading behavior remains local; only coarse, unattributed, lossy, rapidly decaying concentration may enter the shared room projection.
 
 Dust is evidence that attention occurred. It is **not** evidence that the attended thing is important, true, central, spiritually significant, or worthy of imitation.
 
@@ -42,18 +42,18 @@ A human may eventually choose to preserve a meaningful trace, but explicit prese
 
 The first implementation is intentionally smaller than the eventual realtime room feature.
 
-Upper Room currently has the Scripture heartbeat but not durable room state, presence, selection, or AIHYPER wired into the executable application. Therefore Dust Specimen 001 should first exist as a **pure domain module** exercised by synthetic multi-reader traces over John 1.
+Upper Room currently has the Scripture heartbeat but not durable room state, presence, selection, or AIHYPER wired into the executable application. Therefore Dust Specimen 001 should first exist as a **pure domain module** exercised by synthetic multi-reader observations over John 1.
 
 No Supabase dependency is required for this specimen. No account, participant, or room identity is required to prove the primitive.
 
 The specimen proves:
 
 ```text
-synthetic local attention traces
+synthetic local attention observations
           ↓
-lossy classification
+local eligibility classification
           ↓
-coarse aggregation
+lossy aggregation
           ↓
 time decay
           ↓
@@ -103,18 +103,19 @@ A reader must remain able to traverse Scripture exactly as if no Dust existed.
 
 ## Raw attention remains local
 
-The system may observe local interaction long enough to classify a bounded attention gesture, but raw events are not room artifacts.
+The system may observe local interaction long enough to classify a bounded attention gesture, but raw observations are not room artifacts.
 
-Candidate local signals for the specimen:
+Candidate local observations for the specimen:
 
+- **glance** — brief arrival near an anchor; never sufficient by itself;
 - **linger** — the reader remains settled near a Scripture anchor beyond a minimum dwell threshold;
-- **return** — the reader leaves an anchor and later comes back;
+- **return** — the reader leaves an anchor and later comes back independently;
 - **wander-return** — the reader materially traverses elsewhere and later returns;
 - **explicit-selection** — the reader deliberately selects a Scripture range when selection infrastructure exists.
 
-For Specimen 001, these signals are synthetic fixtures rather than production telemetry.
+For Specimen 001, these observations are synthetic fixtures rather than production telemetry.
 
-The aggregation boundary must be one-way: a shared weather sample cannot reconstruct the source participant, exact dwell duration, exact path, or ordered raw gesture history.
+The aggregation boundary must be one-way: a shared weather sample cannot reconstruct the source participant, attention kind, exact dwell duration, exact path, cue provenance, or ordered raw observation history.
 
 ---
 
@@ -124,49 +125,50 @@ A visible weather cue must not cheaply manufacture more of itself.
 
 > **Following the weather is not, by itself, new independent evidence of attention.**
 
-If a reader notices a dusty verse because it shimmered and simply looks at it, that act alone must not strengthen the field.
+If a reader notices a dusty verse because it shimmered and merely glances at it, that observation contributes nothing.
 
-A weather-influenced visit becomes eligible only after a stronger independent act occurs, such as:
+A weather-influenced arrival may become eligible only after a stronger act occurs:
 
-- settling into a qualifying linger after the initial glance;
-- later returning independently;
-- wandering elsewhere and coming back;
-- making an explicit selection.
+- a qualifying linger after the initial glance;
+- a material wander away and return;
+- an explicit selection.
 
-The implementation must make provenance of the local observation sufficient to suppress cue-induced reflex amplification without making that provenance part of the shared room output.
+A later independent return may also qualify when its local provenance is no longer the weather cue itself.
+
+Cue provenance exists only on the local observation side. It must be sufficient to suppress reflex amplification but must never enter the shared weather projection.
 
 ---
 
 ## Data model
 
-The public specimen types should remain small and Scripture-coordinate based.
+The local specimen input may contain information that the shared output deliberately destroys.
 
 ```ts
-type AttentionKind =
+type AttentionObservationKind =
+  | 'glance'
   | 'linger'
   | 'return'
   | 'wander-return'
   | 'explicit-selection';
 
-type LocalAttentionTrace = {
+type LocalAttentionObservation = {
   anchor: ScriptureRef;
-  kind: AttentionKind;
+  kind: AttentionObservationKind;
   observedAtMs: number;
-  cueInfluenced: boolean;
+  cueSource: 'none' | 'weather';
 };
 
 type AttentionWeatherSample = {
   anchor: ScriptureRef;
   concentration: 'trace' | 'present' | 'dense';
-  observedKinds: AttentionKind[];
   expiresAtMs: number;
   authority: 'none';
 };
 ```
 
-The exact internal weights are implementation detail. The public projection exposes **coarse bands**, not raw numeric scores.
+The exact internal weights, eligible-kind set, deduplication state, and decay curve are implementation details. The public projection exposes **coarse bands only**.
 
-`observedKinds` is set-like and must not include participant counts or event counts.
+It exposes no participant count, event count, attention kind, cue provenance, or numeric score.
 
 A future network transport may choose an even poorer representation if needed for privacy.
 
@@ -180,10 +182,10 @@ Every contribution loses influence with time. The field must naturally return to
 
 Specimen 001 should use deterministic time decay so tests can prove:
 
-1. a fresh qualifying trace can create a visible weather sample;
-2. repeated independent trace kinds can increase the coarse concentration band;
-3. stale traces lose influence;
-4. all traces eventually fall below visibility;
+1. a fresh qualifying observation can create a visible weather sample;
+2. diverse independent qualifying observations can increase the coarse concentration band;
+3. stale observations lose influence;
+4. all observations eventually fall below visibility;
 5. no permanent historical record is required to reconstruct the current field.
 
 Exact durations belong to implementation configuration, not constitutional semantics.
@@ -194,12 +196,12 @@ Exact durations belong to implementation configuration, not constitutional seman
 
 Aggregation should reward **diversity of meaningful attention**, not volume.
 
-A single reader generating many repeated low-value traces must not dominate the field. Multiple distinct qualifying kinds around the same anchor may produce a stronger concentration than many identical events.
+Repeated low-value observations must not dominate the field. Multiple distinct qualifying kinds around the same anchor may produce a stronger concentration than many identical events.
 
 The first algorithm should therefore favor:
 
-- deduplicated kinds within a bounded time window;
-- capped contribution per synthetic source window;
+- deduplicated qualifying kinds within a bounded time window;
+- capped contribution from duplicate observations;
 - decay over accumulation;
 - coarse bands rather than numeric exposure.
 
@@ -236,19 +238,20 @@ The first domain specimen does not need to settle the final visual language. It 
 
 ## Synthetic witness fixtures
 
-The first witness should model three anonymous readers over John 1.
+The first witness should model three anonymous readers over John 1 without exposing those reader identities in the weather output.
 
 At minimum, fixtures should prove:
 
 1. **single linger** — creates at most a faint `trace` band;
-2. **independent return pattern** — can increase concentration without exposing who returned;
+2. **diverse independent attention** — can increase concentration without exposing who acted or how many people acted;
 3. **wander-return plus linger** — produces a stronger but still non-authoritative field;
-4. **spam resistance** — many duplicate low-value traces do not grow without bound;
-5. **cue reflex suppression** — a cue-influenced glance contributes nothing by itself;
-6. **cue followed by independent linger** — may lawfully contribute after the stronger act;
+4. **spam resistance** — many duplicate low-value observations do not grow without bound;
+5. **cue reflex suppression** — a weather-influenced `glance` contributes nothing;
+6. **cue followed by qualifying linger** — may lawfully contribute after the stronger act;
 7. **decay** — identical fixtures evaluated later produce weaker or no weather;
 8. **coordinate isolation** — attention on John 1:5 cannot alter John 1:6;
-9. **Scripture immutability** — adapter output and verse order remain byte-for-byte / structurally unchanged by weather derivation.
+9. **projection impoverishment** — output exposes no attention kind, participant count, cue source, raw timing history, or source path;
+10. **Scripture immutability** — adapter output and verse order remain structurally unchanged by weather derivation.
 
 ---
 
@@ -256,8 +259,8 @@ At minimum, fixtures should prove:
 
 Dust should fail toward absence.
 
-- Invalid or incomplete local traces are ignored or rejected; they do not invent weather.
-- Unknown attention kinds are rejected.
+- Invalid or incomplete local observations are ignored or rejected; they do not invent weather.
+- Unknown observation kinds are rejected.
 - Invalid Scripture coordinates cannot enter a weather sample.
 - If decay configuration is unavailable, the consumer renders no weather rather than non-decaying residue.
 - If weather computation fails, Scripture reading remains fully usable.
@@ -291,11 +294,11 @@ Dust Specimen 001 does not implement:
 The specimen is successful when deterministic tests prove all of the following:
 
 1. qualifying synthetic attention can derive a coarse weather sample for a Scripture anchor;
-2. raw traces are not present in the public projection;
+2. raw observations and their kinds are not present in the public projection;
 3. participant identity is neither required nor exposed;
 4. duplicate-event spam is bounded;
-5. cue-induced reflex attention cannot self-amplify the field;
-6. stronger independent attention after a cue may contribute;
+5. weather-influenced reflex attention cannot self-amplify the field;
+6. stronger qualifying attention after a cue may contribute;
 7. concentration decays to absence over time;
 8. neighboring Scripture anchors remain unaffected;
 9. weather carries `authority: 'none'`;
