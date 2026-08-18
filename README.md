@@ -23,6 +23,6 @@ npm run build
 npm run test:e2e
 ```
 
-CI reconstructs `package-lock.json`, refuses it unless its SHA-256 matches `dependency-lock.sha256`, then installs with `npm ci`. Successful runs preserve both the verified lock and the Pixel 7 Scripture screenshot as the milestone-B proof artifact.
+CI reconstructs `package-lock.json` against the fixed registry horizon that produced the accepted lock witness, refuses the result unless its SHA-256 matches `dependency-lock.sha256`, then installs with `npm ci`. Advancing that horizon is therefore an explicit dependency-admission act rather than an accidental consequence of later peer-package publication. Successful runs preserve both the verified lock and the Pixel 7 Scripture screenshot as the milestone-B proof artifact.
 
 The WEB corpus manifest records eBible.org as source authority. Local JSON is a distributable witness for the public-domain text, not a replacement source of authority.
