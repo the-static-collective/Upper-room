@@ -10,9 +10,10 @@ The first executable milestone is intentionally small:
 - Scripture remains the primary screen surface;
 - a translation-neutral `ScriptureAdapter` boundary;
 - the first local WEB Protestant (`engwebp`) corpus witness: John 1;
+- a pure Dust Specimen 001 domain module for synthetic, non-authoritative attention weather;
 - unit/component tests plus a phone-shaped Playwright witness.
 
-Room auth, presence, selection, AIHYPER, durable memory, branches, and publication boundaries remain specified but are not implemented in this slice.
+Dust is not connected to the reading UI in this specimen. Room auth, presence, selection, AIHYPER, durable memory, branches, and publication boundaries remain specified but are not implemented in this slice.
 
 ## Run
 
