@@ -190,3 +190,43 @@ describe('Dust Specimen 001 weather derivation', () => {
     ).toThrow(DustSpecimenError);
   });
 });
+
+describe('Dust Specimen 001 constitutional boundaries', () => {
+  const NOW = 2_000_000;
+
+  it('does not mutate local observations or their Scripture anchors', () => {
+    const input: LocalAttentionObservation = {
+      anchor: { ...JHN_1_5 },
+      kind: 'wander-return',
+      observedAtMs: NOW - 1_000,
+      cueSource: 'none',
+    };
+    const before = structuredClone(input);
+
+    deriveAttentionWeather([input], NOW);
+
+    expect(input).toEqual(before);
+  });
+
+  it('projects exactly the intentionally impoverished public keys', () => {
+    const [sample] = deriveAttentionWeather([
+      observation('explicit-selection', 'none', NOW - 1_000),
+    ], NOW);
+
+    expect(Object.keys(sample ?? {}).sort()).toEqual([
+      'anchor',
+      'authority',
+      'concentration',
+      'expiresAtMs',
+    ]);
+  });
+
+  it('never exposes raw observation metadata through nested output', () => {
+    const source = observation('explicit-selection', 'weather', NOW - 1_000);
+    const serialized = JSON.stringify(deriveAttentionWeather([source], NOW));
+
+    expect(serialized).not.toContain('explicit-selection');
+    expect(serialized).not.toContain('cueSource');
+    expect(serialized).not.toContain(String(source.observedAtMs));
+  });
+});
