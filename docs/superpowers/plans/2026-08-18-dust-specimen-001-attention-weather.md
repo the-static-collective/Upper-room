@@ -25,9 +25,9 @@
 ## File Structure
 
 - Create `src/features/dust/types.ts` — public local-observation and shared-weather contracts plus configuration type.
-- Create `src/features/dust/attentionWeather.ts` — eligibility, validation, deduplication, deterministic decay, aggregation, coarse-band projection, and canonical ordering.
+- Create `src/features/dust/attentionWeather.ts` — runtime validation, eligibility, deduplication, deterministic decay, aggregation, coarse-band projection, and canonical ordering.
 - Create `src/features/dust/attentionWeather.test.ts` — all synthetic John 1 witness fixtures and constitutional regression tests for the pure domain module.
-- Modify `src/app/App.test.tsx` — add one explicit regression assertion proving the application renders the same Scripture heartbeat with no Dust dependency or required weather input.
+- Modify `src/app/App.test.tsx` — add explicit regression assertions proving the application renders the same Scripture heartbeat with no Dust dependency or required weather input.
 
 No production UI file changes are planned.
 
@@ -51,9 +51,9 @@ No production UI file changes are planned.
   - `DustSpecimenError`
   - `isEligibleAttentionObservation(observation: LocalAttentionObservation): boolean`
 
-- [ ] **Step 1: Write the failing type/eligibility tests**
+- [ ] **Step 1: Write the failing type, validation, and eligibility tests**
 
-Create `src/features/dust/attentionWeather.test.ts` with this initial content:
+Create `src/features/dust/attentionWeather.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -122,6 +122,26 @@ describe('Dust Specimen 001 local eligibility', () => {
 
     expect(() => isEligibleAttentionObservation(invalid)).toThrow(DustSpecimenError);
   });
+
+  it('rejects unknown observation kinds and cue sources at runtime', () => {
+    const unknownKind = {
+      ...observation('linger'),
+      kind: 'hover',
+    } as unknown as LocalAttentionObservation;
+    const unknownCue = {
+      ...observation('linger'),
+      cueSource: 'recommendation',
+    } as unknown as LocalAttentionObservation;
+
+    expect(() => isEligibleAttentionObservation(unknownKind)).toThrow(DustSpecimenError);
+    expect(() => isEligibleAttentionObservation(unknownCue)).toThrow(DustSpecimenError);
+  });
+
+  it('rejects malformed timestamps', () => {
+    expect(() =>
+      isEligibleAttentionObservation(observation('linger', 'none', Number.NaN)),
+    ).toThrow(DustSpecimenError);
+  });
 });
 ```
 
@@ -174,13 +194,14 @@ export type AttentionWeatherConfig = {
 };
 ```
 
-- [ ] **Step 4: Add minimal validation and eligibility implementation**
+- [ ] **Step 4: Add minimal runtime validation and eligibility implementation**
 
 Create `src/features/dust/attentionWeather.ts`:
 
 ```ts
 import type { ScriptureRef } from '../scripture/types';
 import type {
+  AttentionObservationKind,
   AttentionWeatherConfig,
   LocalAttentionObservation,
 } from './types';
@@ -200,6 +221,15 @@ export const DEFAULT_ATTENTION_WEATHER_CONFIG: Readonly<AttentionWeatherConfig> 
   denseThreshold: 4,
 });
 
+const ATTENTION_KINDS: ReadonlySet<string> = new Set<AttentionObservationKind>([
+  'glance',
+  'linger',
+  'return',
+  'wander-return',
+  'explicit-selection',
+]);
+const CUE_SOURCES: ReadonlySet<string> = new Set(['none', 'weather']);
+
 function assertVerseAnchor(anchor: ScriptureRef): void {
   if (
     anchor.translationId.trim() === '' ||
@@ -216,6 +246,12 @@ function assertVerseAnchor(anchor: ScriptureRef): void {
 export function isEligibleAttentionObservation(observation: LocalAttentionObservation): boolean {
   assertVerseAnchor(observation.anchor);
 
+  if (!ATTENTION_KINDS.has(observation.kind)) {
+    throw new DustSpecimenError('unknown attention observation kind');
+  }
+  if (!CUE_SOURCES.has(observation.cueSource)) {
+    throw new DustSpecimenError('unknown attention cue source');
+  }
   if (!Number.isFinite(observation.observedAtMs) || observation.observedAtMs < 0) {
     throw new DustSpecimenError('attention observation requires a finite non-negative timestamp');
   }
@@ -271,8 +307,8 @@ git commit -m "feat: define Dust attention eligibility boundary"
 
 - Validate configuration: `freshWindowMs > 0`, `ttlMs > freshWindowMs`, thresholds finite and `0 < traceThreshold < presentThreshold < denseThreshold`.
 - Validate `nowMs` as finite and non-negative.
-- Ignore ineligible observations (`glance`; `return` with `cueSource: 'weather'`).
-- Ignore future observations (`observedAtMs > nowMs`) by rejecting them with `DustSpecimenError`; do not silently time-travel.
+- Reject future observations (`observedAtMs > nowMs`) with `DustSpecimenError`.
+- Ignore locally ineligible observations (`glance`; `return` with `cueSource: 'weather'`).
 - Group by canonical verse key: `translationId|book|chapter|verse`.
 - Within each anchor, deduplicate by qualifying attention kind, retaining only the most recent eligible observation for each kind.
 - Internal weights:
@@ -293,9 +329,9 @@ git commit -m "feat: define Dust attention eligibility boundary"
 - `expiresAtMs` = maximum `observedAtMs + ttlMs` among deduplicated observations that still have nonzero freshness.
 - Return samples sorted lexically by canonical verse key for deterministic output.
 
-- [ ] **Step 1: Add failing aggregation/decay tests**
+- [ ] **Step 1: Add failing aggregation, decay, and config tests**
 
-Append to `src/features/dust/attentionWeather.test.ts` and update imports to include `deriveAttentionWeather`:
+Update the import in `src/features/dust/attentionWeather.test.ts`:
 
 ```ts
 import {
@@ -306,7 +342,7 @@ import {
 } from './attentionWeather';
 ```
 
-Then append:
+Append:
 
 ```ts
 describe('Dust Specimen 001 weather derivation', () => {
@@ -368,9 +404,7 @@ describe('Dust Specimen 001 weather derivation', () => {
   });
 
   it('decays fresh weather to a weaker band and then to absence', () => {
-    const source = [
-      observation('wander-return', 'none', 100_000),
-    ];
+    const source = [observation('wander-return', 'none', 100_000)];
 
     expect(deriveAttentionWeather(source, 100_001)[0]?.concentration).toBe('present');
     expect(deriveAttentionWeather(source, 400_000)[0]?.concentration).toBe('trace');
@@ -397,9 +431,20 @@ describe('Dust Specimen 001 weather derivation', () => {
 
   it('rejects future observations instead of inventing negative-age weather', () => {
     expect(() =>
-      deriveAttentionWeather([
-        observation('linger', 'none', NOW + 1),
-      ], NOW),
+      deriveAttentionWeather([observation('linger', 'none', NOW + 1)], NOW),
+    ).toThrow(DustSpecimenError);
+  });
+
+  it('rejects invalid decay configuration', () => {
+    expect(() =>
+      deriveAttentionWeather(
+        [observation('linger', 'none', NOW - 1)],
+        NOW,
+        {
+          ...DEFAULT_ATTENTION_WEATHER_CONFIG,
+          ttlMs: DEFAULT_ATTENTION_WEATHER_CONFIG.freshWindowMs,
+        },
+      ),
     ).toThrow(DustSpecimenError);
   });
 });
@@ -417,7 +462,7 @@ Expected: FAIL because `deriveAttentionWeather` is not exported.
 
 - [ ] **Step 3: Implement deterministic aggregation**
 
-Extend `src/features/dust/attentionWeather.ts` with these imports and helpers:
+Extend `src/features/dust/attentionWeather.ts` imports:
 
 ```ts
 import type {
@@ -427,7 +472,11 @@ import type {
   AttentionWeatherSample,
   LocalAttentionObservation,
 } from './types';
+```
 
+Add:
+
+```ts
 const ATTENTION_WEIGHT: Readonly<Record<Exclude<AttentionObservationKind, 'glance'>, number>> = Object.freeze({
   linger: 1,
   return: 1,
@@ -462,17 +511,16 @@ function freshness(ageMs: number, config: Readonly<AttentionWeatherConfig>): num
   return 0;
 }
 
-function concentrationFor(score: number, config: Readonly<AttentionWeatherConfig>): AttentionConcentration | null {
+function concentrationFor(
+  score: number,
+  config: Readonly<AttentionWeatherConfig>,
+): AttentionConcentration | null {
   if (score < config.traceThreshold) return null;
   if (score < config.presentThreshold) return 'trace';
   if (score < config.denseThreshold) return 'present';
   return 'dense';
 }
-```
 
-Then add the public derivation:
-
-```ts
 export function deriveAttentionWeather(
   observations: readonly LocalAttentionObservation[],
   nowMs: number,
@@ -483,7 +531,10 @@ export function deriveAttentionWeather(
   }
   assertConfig(config);
 
-  const byAnchor = new Map<string, Map<Exclude<AttentionObservationKind, 'glance'>, LocalAttentionObservation>>();
+  const byAnchor = new Map<
+    string,
+    Map<Exclude<AttentionObservationKind, 'glance'>, LocalAttentionObservation>
+  >();
 
   for (const observation of observations) {
     const eligible = isEligibleAttentionObservation(observation);
@@ -579,7 +630,7 @@ git commit -m "feat: derive decaying Dust attention weather"
 - Consumes: `deriveAttentionWeather(...)` from Task 2 and the existing `App` Scripture heartbeat.
 - Produces: no new production interface; this task closes constitutional evidence gaps.
 
-- [ ] **Step 1: Add failing immutability and projection-shape tests**
+- [ ] **Step 1: Add immutability and exact projection-shape tests**
 
 Append to `src/features/dust/attentionWeather.test.ts`:
 
@@ -620,7 +671,6 @@ describe('Dust Specimen 001 constitutional boundaries', () => {
 
     expect(serialized).not.toContain('explicit-selection');
     expect(serialized).not.toContain('cueSource');
-    expect(serialized).not.toContain('weather\"');
     expect(serialized).not.toContain(String(source.observedAtMs));
   });
 });
@@ -632,11 +682,11 @@ Run:
 npm test -- src/features/dust/attentionWeather.test.ts
 ```
 
-Expected: the exact public-key test should PASS if Task 2 stayed minimal; if any accidental metadata leaked, it must FAIL here and be removed before proceeding. Treat an unexpected PASS as valid evidence, not a reason to add artificial production changes.
+Expected: PASS if Tasks 1–2 stayed inside the approved boundary. If any test fails, remove leaked metadata or mutation; do not widen the public projection to satisfy the test.
 
 - [ ] **Step 2: Add an explicit App independence regression**
 
-Extend the existing test in `src/app/App.test.tsx` with assertions that the Scripture surface requires no Dust data and retains canonical verse identity:
+Extend the existing test in `src/app/App.test.tsx` with:
 
 ```ts
 expect(screen.getByRole('main')).not.toHaveAttribute('data-attention-weather');
@@ -728,6 +778,7 @@ The PR body must state only claims established by the tests:
 
 - raw attention observations remain input-only and are absent from the public projection;
 - weather output contains only Scripture anchor, coarse concentration, expiry, and `authority: none`;
+- malformed runtime observation kinds/cue sources are rejected;
 - weather-induced glance/return reflexes do not amplify the field;
 - stronger qualifying acts after a cue may contribute;
 - duplicate-kind spam is bounded;
@@ -744,11 +795,12 @@ Do not claim realtime privacy, multi-device behavior, production telemetry prote
 Ask reviewers to prioritize:
 
 ```text
-1. Can any raw observation metadata escape through AttentionWeatherSample?
-2. Can a cue-induced reflex create a self-reinforcing loop?
-3. Can duplicate low-value events dominate concentration?
-4. Can Dust affect Scripture order, navigation, AIHYPER, room memory, or authority?
-5. Can stale Dust persist indefinitely?
+1. Can malformed runtime data bypass the local validation boundary?
+2. Can raw observation metadata escape through AttentionWeatherSample?
+3. Can a cue-induced reflex create a self-reinforcing loop?
+4. Can duplicate low-value events dominate concentration?
+5. Can Dust affect Scripture order, navigation, AIHYPER, room memory, or authority?
+6. Can stale Dust persist indefinitely?
 ```
 
 - [ ] **Step 4: Stop at verified review readiness**
@@ -762,11 +814,13 @@ Do not merge or enable auto-merge without the repository's normal PR-completion 
 Before calling the implementation complete, verify each spec requirement maps to observed evidence:
 
 - local-only raw observation richness → Task 1/2 tests;
+- malformed input rejection → Task 1/2 tests;
 - no glance feedback amplification → Task 1/2 tests;
 - stronger post-cue acts may qualify → Task 1/2 tests;
 - lossy output → Task 2/3 shape and serialization tests;
 - no identity/count/kind exposure → Task 2/3 tests;
 - deterministic decay → Task 2 tests;
+- invalid decay config rejection → Task 2 test;
 - duplicate spam bounded → Task 2 test;
 - verse coordinate isolation → Task 2 test;
 - `authority: 'none'` → Task 2 expected output;
