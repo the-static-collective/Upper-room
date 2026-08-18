@@ -14,7 +14,11 @@ jobs:
         with:
           node-version: '22'
       - name: Reconstruct dependency lock
-        run: npm install --package-lock-only --ignore-scripts
+        run: |
+          if ! npm install --package-lock-only --ignore-scripts; then
+            cat /home/runner/.npm/_logs/*-debug-0.log || true
+            exit 1
+          fi
       - name: Refuse dependency drift
         run: sha256sum -c dependency-lock.sha256
       - name: Install verified dependencies
