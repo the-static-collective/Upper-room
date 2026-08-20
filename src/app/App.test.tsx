@@ -26,9 +26,13 @@ describe('Upper Room app shell', () => {
     render(<App scriptureAdapter={adapter} />);
 
     expect(screen.getByRole('main')).toHaveAttribute('data-surface', 'scripture');
+    expect(screen.getByRole('main')).not.toHaveAttribute('data-attention-weather');
     expect(screen.getByText('Upper Room')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'John 1' })).toBeInTheDocument();
     expect(screen.getByText(/In the beginning was the Word/)).toBeInTheDocument();
+    expect(document.getElementById('JHN-1-5')).toHaveTextContent(
+      'The light shines in the darkness, and the darkness hasn’t overcome it.',
+    );
     expect(screen.getByText('WEB')).toBeInTheDocument();
   });
 });
