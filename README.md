@@ -2,6 +2,14 @@
 
 Upper Room is a phone-first shared Scripture room designed to make shared attention easier without making attention less free.
 
+## Defining edge
+
+> **Upper Room preserves the thread, not the pose.**
+
+Its defining concern is **continuity without captivity**: participants may wander, branch, disagree, leave, return, and change without losing the attributable relation back to the text and encounter that produced what came later.
+
+Continuity here does not mean maximal recording or forced synchronization. It means preserving only the durable relations needed for honest re-entry: textual anchors, witness provenance, branch lineage, first-witness history, explicit returns, and admission/refusal boundaries. See [`docs/superpowers/specs/2026-08-20-continuity-defining-edge-design.md`](./docs/superpowers/specs/2026-08-20-continuity-defining-edge-design.md).
+
 ## Current slice
 
 The first executable milestone is intentionally small:
