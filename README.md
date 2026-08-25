@@ -10,6 +10,10 @@ Its defining concern is **continuity without captivity**: participants may wande
 
 Continuity here does not mean maximal recording or forced synchronization. It means preserving only the durable relations needed for honest re-entry: textual anchors, witness provenance, branch lineage, first-witness history, explicit returns, and admission/refusal boundaries. See [`docs/superpowers/specs/2026-08-20-continuity-defining-edge-design.md`](./docs/superpowers/specs/2026-08-20-continuity-defining-edge-design.md).
 
+## For-now next steps
+
+The current sequencing map is [`docs/for-now-next-steps-map.md`](./docs/for-now-next-steps-map.md). It keeps immediate product work, nearby proving grounds, newly opened architecture, and horizon ideas visible without promoting them into one roadmap.
+
 ## Current slice
 
 The first executable milestone is intentionally small:
