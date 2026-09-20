@@ -44,7 +44,7 @@ function utc(value: string): string {
 function anchorEqual(a: BranchWitnessV0['anchor'], b: BranchWitnessV0['anchor']): boolean {
   const x = a.scriptureRef;
   const y = b.scriptureRef;
-  return a.sourceRef === b.sourceRef && x.translationId === y.translationId && x.book === y.book &&
+  return x.translationId === y.translationId && x.book === y.book &&
     x.chapter === y.chapter && x.verse === y.verse;
 }
 
@@ -65,7 +65,7 @@ export function prepareTemporalReturnSpecimen({
     throw new Error('distinct encounter IDs required');
   }
   if (!anchorEqual(first.branch.anchor, second.branch.anchor)) {
-    throw new Error('same exact Scripture anchor required');
+    throw new Error('same exact Scripture reference required');
   }
   if (Date.parse(utc(second.instantUtc)) < Date.parse(utc(first.instantUtc))) {
     throw new Error('encounters must be in chronological order');
