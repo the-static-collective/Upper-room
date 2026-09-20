@@ -52,6 +52,20 @@ describe('TEMPORAL-RETURN-001 opt-in export', () => {
     expect(JSON.stringify(exported)).not.toContain('openedBy');
   });
 
+  it('preserves distinct source selections for the same Scripture address', () => {
+    const value = inputs();
+    const secondSource = createBranchWitness({
+      branchId: 'branch:separate-selection',
+      anchor: { ...anchor, sourceRef: 'fixture:later-selection' },
+      openedBy: 'fixture:reader',
+    });
+    const result = prepareTemporalReturnSpecimen({
+      ...value, encounters: [value.encounters[0], { ...value.encounters[1], branch: secondSource }],
+    });
+    expect(result.encounters[0].anchor.sourceRef).not.toBe(result.encounters[1].anchor.sourceRef);
+    expect(result.encounters[0].anchor.scriptureRef).toEqual(result.encounters[1].anchor.scriptureRef);
+  });
+
   it('can explicitly leave temporal context unavailable', () => {
     const value = inputs();
     const second = { ...value.encounters[1], temporalWitness: null };
@@ -74,6 +88,6 @@ describe('TEMPORAL-RETURN-001 opt-in export', () => {
     });
     expect(() => prepareTemporalReturnSpecimen({
       ...value, encounters: [first, { ...value.encounters[1], branch: different }],
-    })).toThrow(/same exact Scripture anchor/);
+    })).toThrow(/same exact Scripture reference/);
   });
 });
