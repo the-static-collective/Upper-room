@@ -81,7 +81,7 @@ describe('TEMPORAL-RETURN-001 opt-in export', () => {
     const broken = { ...first, temporalWitness: { ...first.temporalWitness, instant_utc: '2026-09-21T14:00:00Z' } };
     expect(() => prepareTemporalReturnSpecimen({
       ...value, encounters: [broken, value.encounters[1]],
-    })).toThrow(/same exact UTC instant/);
+    })).toThrow(/share the exact UTC instant/);
     const different = createBranchWitness({
       branchId: 'branch:other', anchor: { ...anchor, scriptureRef: { ...anchor.scriptureRef, verse: 2 } },
       openedBy: 'fixture:reader',
