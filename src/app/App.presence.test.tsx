@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 import type { ScriptureAdapter } from '../features/scripture/types';
@@ -24,12 +23,11 @@ const channelFactory: ChannelFactory = () => ({
 
 describe('Upper Room local presence entry', () => {
   it('keeps Scripture visible until a reader deliberately opens a local room', async () => {
-    const user = userEvent.setup();
     render(<App scriptureAdapter={adapter} localChannelFactory={channelFactory} />);
     expect(await screen.findByRole('heading', { name: 'John 1' })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Reading windows' })).not.toBeInTheDocument();
-    await user.type(screen.getByRole('textbox', { name: 'Your name' }), 'Lu');
-    await user.click(screen.getByRole('button', { name: 'Open local room' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Your name' }), { target: { value: 'Lu' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Open local room' }));
     expect(screen.getByRole('navigation', { name: 'Reading windows' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Me/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText(/same-browser tabs only/i)).toBeInTheDocument();
