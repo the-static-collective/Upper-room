@@ -26,7 +26,7 @@ test('two same-browser reading windows remain sovereign', async ({ context, page
     await page.getByRole('button', { name: /Me/ }).click();
     await expect(page.getByRole('button', { name: /Me/ })).toHaveAttribute('aria-pressed', 'true');
 
-    await other.close();
+    await other.getByRole('button', { name: 'Leave local room' }).click();
     await expect(page.getByRole('button', { name: /Paula/ })).toContainText('offline');
   } finally {
     if (!other.isClosed()) await other.close();
