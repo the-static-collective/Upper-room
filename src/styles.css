@@ -163,3 +163,53 @@ h1 {
     padding-inline: 2rem;
   }
 }
+
+
+/* The presence row is furniture, never the room's primary surface. */
+.presence-entry,
+.presence-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 1rem;
+  border-bottom: 1px solid var(--hairline);
+  font: 0.78rem ui-sans-serif, system-ui, sans-serif;
+}
+.presence-entry input {
+  width: min(11rem, 40vw);
+  min-height: 44px;
+  border: 1px solid var(--hairline);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  color: var(--ink);
+  background: var(--page);
+  font: inherit;
+}
+.presence-entry button, .presence-tab {
+  min-height: 44px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 0.45rem 0.7rem;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.presence-entry button:disabled { opacity: 0.4; cursor: not-allowed; }
+.presence-tabs { display: flex; gap: 0.4rem; overflow-x: auto; max-width: 100%; }
+.presence-tab { white-space: nowrap; flex: 0 0 auto; }
+.presence-tab[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--soft);
+}
+.presence-anchor, .presence-limitation { color: var(--muted); }
+.presence-offline { color: var(--muted); font-style: italic; }
+.scripture-surface {
+  height: calc(100dvh - 11rem);
+  min-height: 12rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-top: 1rem;
+}
+.verse { scroll-margin-top: 1rem; }
