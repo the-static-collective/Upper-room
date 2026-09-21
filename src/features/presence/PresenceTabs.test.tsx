@@ -1,5 +1,4 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { createPresenceState, observeUser, receiveRemoteWindow } from './reducer';
 import PresenceTabs from './PresenceTabs';
@@ -16,11 +15,11 @@ describe('presence tabs', () => {
     const onReturn = vi.fn();
     const state = receiveRemoteWindow(createPresenceState('lu', mine), paula);
     const view = render(<PresenceTabs state={state} onObserve={onObserve} onReturn={onReturn} />);
-    await userEvent.click(screen.getByRole('button', { name: /Paula/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Paula/ }));
     expect(onObserve).toHaveBeenCalledWith('paula');
     view.rerender(<PresenceTabs state={observeUser(state, 'paula')} onObserve={onObserve} onReturn={onReturn} />);
     expect(screen.getByRole('button', { name: /Paula/ })).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.click(screen.getByRole('button', { name: /Me/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Me/ }));
     expect(onReturn).toHaveBeenCalledOnce();
   });
 
