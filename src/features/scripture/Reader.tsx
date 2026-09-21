@@ -17,13 +17,14 @@ type ReaderState =
 
 export default function Reader({ adapter, scriptureRef, focusVerse, focusKey }: ReaderProps) {
   const [state, setState] = useState<ReaderState>({ status: 'loading' });
+  const { translationId, book, chapter } = scriptureRef;
 
   useEffect(() => {
     let active = true;
     setState({ status: 'loading' });
 
     adapter
-      .getChapter(scriptureRef)
+      .getChapter({ translationId, book, chapter })
       .then((chapter) => {
         if (active) setState({ status: 'ready', chapter });
       })
@@ -36,7 +37,7 @@ export default function Reader({ adapter, scriptureRef, focusVerse, focusKey }: 
     return () => {
       active = false;
     };
-  }, [adapter, scriptureRef]);
+  }, [adapter, translationId, book, chapter]);
 
   useEffect(() => {
     if (state.status !== 'ready' || !focusVerse) return;
