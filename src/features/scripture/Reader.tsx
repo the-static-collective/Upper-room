@@ -4,6 +4,10 @@ import type { ScriptureAdapter, ScriptureChapter, ScriptureRef } from './types';
 type ReaderProps = {
   adapter: ScriptureAdapter;
   scriptureRef: ScriptureRef;
+  /** Displayed lens anchor: not a command to change anyone else's window. */
+  focusVerse?: number;
+  /** Changes only when the reader intentionally switches windows or the observed window moves. */
+  focusKey?: string;
 };
 
 type ReaderState =
@@ -11,15 +15,16 @@ type ReaderState =
   | { status: 'ready'; chapter: ScriptureChapter }
   | { status: 'error'; message: string };
 
-export default function Reader({ adapter, scriptureRef }: ReaderProps) {
+export default function Reader({ adapter, scriptureRef, focusVerse, focusKey }: ReaderProps) {
   const [state, setState] = useState<ReaderState>({ status: 'loading' });
+  const { translationId, book, chapter: requestedChapter } = scriptureRef;
 
   useEffect(() => {
     let active = true;
     setState({ status: 'loading' });
 
     adapter
-      .getChapter(scriptureRef)
+      .getChapter({ translationId, book, chapter: requestedChapter })
       .then((chapter) => {
         if (active) setState({ status: 'ready', chapter });
       })
@@ -32,10 +37,23 @@ export default function Reader({ adapter, scriptureRef }: ReaderProps) {
     return () => {
       active = false;
     };
-  }, [adapter, scriptureRef]);
+  }, [adapter, translationId, book, requestedChapter]);
+
+  useEffect(() => {
+    if (state.status !== 'ready' || !focusVerse) return;
+    const target = document.getElementById(
+      `${state.chapter.book}-${state.chapter.chapter}-${focusVerse}`,
+    );
+    if (target && typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ block: 'start' });
+    }
+    // focusVerse intentionally omitted: local scrolling changes the anchor
+    // without forcing a jump. A distinct focusKey is an explicit lens change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, focusKey]);
 
   if (state.status === 'loading') {
-    return <p className="reader-status">Opening John 1…</p>;
+    return <p className="reader-status">Opening Scripture…</p>;
   }
 
   if (state.status === 'error') {
