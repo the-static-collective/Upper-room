@@ -186,7 +186,7 @@ h1 {
   background: var(--page);
   font: inherit;
 }
-.presence-entry button, .presence-tab {
+.presence-entry button, .presence-tab, .presence-leave {
   min-height: 44px;
   border: 1px solid var(--hairline);
   border-radius: 999px;
