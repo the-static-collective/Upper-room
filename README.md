@@ -23,9 +23,10 @@ The first executable milestone is intentionally small:
 - a translation-neutral `ScriptureAdapter` boundary;
 - the first local WEB Protestant (`engwebp`) corpus witness: John 1;
 - a pure Dust Specimen 001 domain module for synthetic, non-authoritative attention weather;
+- sovereign presence viewport reducer, presence tabs, and an ephemeral **same-browser, multi-tab rehearsal channel**;
 - unit/component tests plus a phone-shaped Playwright witness.
 
-Dust is not connected to the reading UI in this specimen. Room auth, presence, selection, AIHYPER, durable memory, branches, and publication boundaries remain specified but are not implemented in this slice.
+Dust is not connected to the reading UI in this specimen. Presence tabs can be rehearsed between two tabs of the **same browser** by opening a local room and copying its URL into the other tab. This does **not** connect separate phones: private room authentication, a cross-device realtime relay, selection, AIHYPER, durable room memory, and publication boundaries remain unimplemented in the running app. The separate Branch / Return module is a pure continuity specimen, not a live room backend.
 
 ## Run
 
