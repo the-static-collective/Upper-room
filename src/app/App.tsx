@@ -163,7 +163,7 @@ export default function App({
             />
           )}
           <span className="presence-limitation">
-            Local rehearsal · open this room URL in a second tab of the same browser.
+            Same-browser tabs only · open this room URL in another tab to share a reading window.
           </span>
         </div>
       )}
