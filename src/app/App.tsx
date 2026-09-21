@@ -165,6 +165,17 @@ export default function App({
           <span className="presence-limitation">
             Same-browser tabs only · open this room URL in another tab to share a reading window.
           </span>
+          <button
+            type="button"
+            className="presence-leave"
+            onClick={() => {
+              setIdentity(null);
+              setPresence(null);
+              setRoomId('');
+            }}
+          >
+            Leave local room
+          </button>
         </div>
       )}
 
