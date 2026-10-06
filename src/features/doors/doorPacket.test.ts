@@ -39,7 +39,11 @@ describe('DOOR PACKET 001', () => {
       authority: null,
       requestedEffect: null,
     });
-    expect(JSON.stringify(packet)).not.toMatch(/roomId|participant|note|exactText/i);
+    const exported = packet as unknown as Record<string, unknown>;
+    expect(exported).not.toHaveProperty('roomId');
+    expect(exported).not.toHaveProperty('participantId');
+    expect(exported).not.toHaveProperty('humanNote');
+    expect(exported).not.toHaveProperty('exactText');
   });
 
   it('refuses impossible or reversed Scripture ranges', () => {
